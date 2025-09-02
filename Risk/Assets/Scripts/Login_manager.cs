@@ -7,6 +7,7 @@ public class Login_manager : MonoBehaviour
     public TMP_InputField username;
     public TMP_InputField ip;
 
+
     public void SetPlayerData()
     {
 

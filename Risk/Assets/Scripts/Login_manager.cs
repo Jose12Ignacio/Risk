@@ -1,12 +1,14 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class Login_manager : MonoBehaviour
 {
     public TMP_InputField username;
     public TMP_InputField ip;
 
-    public void set_player_data()
+
+    public void SetPlayerData()
     {
 
         if (string.IsNullOrWhiteSpace(username.text))
@@ -19,6 +21,9 @@ public class Login_manager : MonoBehaviour
             User_info.ip = ip.text;
             Debug.Log(User_info.username);
             Debug.Log(User_info.ip);
+            Debug.Log("Informacion seteada");
+
+            SceneManager.LoadScene("Game_room");
         }
     }
 }

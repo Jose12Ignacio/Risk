@@ -20,9 +20,10 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
     public async void StartServerAndLocalPlayer()
     {
         ip = GetLocalIPAddress();
-        if (!System.Net.IPAddress.TryParse(ip, out _)) {
-
-
+        Debug.Log(ip);
+        if (System.Net.IPAddress.TryParse(ip, out _))
+        {
+            Debug.Log("Entro");
             // Iniciar servidor
             server = new Server();
             _ = server.StartServer(port);

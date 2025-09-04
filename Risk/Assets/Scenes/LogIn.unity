@@ -132,7 +132,7 @@ GameObject:
   - component: {fileID: 120687689}
   - component: {fileID: 120687688}
   m_Layer: 5
-  m_Name: Ip
+  m_Name: inputIp
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1424,7 +1424,7 @@ GameObject:
   - component: {fileID: 734305942}
   - component: {fileID: 734305941}
   m_Layer: 5
-  m_Name: Username
+  m_Name: inputUsername
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1929,8 +1929,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b8964696ecbca7139b9c3f1b6e8e1f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Login_manager
-  inputUsername: {fileID: 0}
-  inputIp: {fileID: 0}
+  inputUsername: {fileID: 734305941}
+  inputIp: {fileID: 120687688}
   errorColor: {r: 1, g: 0, b: 0, a: 1}
   audioSource: {fileID: 0}
   errorSound: {fileID: 0}

@@ -886,19 +886,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1417328824}
         m_TargetAssemblyTypeName: Login_manager, Assembly-CSharp
-        m_MethodName: SetPlayerData
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 704387482}
-        m_TargetAssemblyTypeName: ClientManager, Assembly-CSharp
-        m_MethodName: ConnectToServer
+        m_MethodName: OnClickSetClient
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1396,6 +1384,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7969109ab41dfb34588c015ea67c63e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ClientManager
+  loginManager: {fileID: 1417328824}
+  inputUsername: {fileID: 734305941}
+  inputIp: {fileID: 120687688}
 --- !u!4 &704387483
 Transform:
   m_ObjectHideFlags: 0
@@ -1824,19 +1815,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1417328824}
         m_TargetAssemblyTypeName: Login_manager, Assembly-CSharp
-        m_MethodName: SetPlayerData
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 704387481}
-        m_TargetAssemblyTypeName: ServerManager, Assembly-CSharp
-        m_MethodName: StartServerAndLocalPlayer
+        m_MethodName: OnClickSetServer
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1932,8 +1911,10 @@ MonoBehaviour:
   inputUsername: {fileID: 734305941}
   inputIp: {fileID: 120687688}
   errorColor: {r: 1, g: 0, b: 0, a: 1}
-  audioSource: {fileID: 0}
-  errorSound: {fileID: 0}
+  audioSource: {fileID: 1417328825}
+  errorSound: {fileID: 8300000, guid: 52dfbdef7fbe73b43974f86e81ddd780, type: 3}
+  clientManager: {fileID: 704387482}
+  serverManager: {fileID: 704387481}
 --- !u!82 &1417328825
 AudioSource:
   m_ObjectHideFlags: 0
@@ -1946,7 +1927,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 52dfbdef7fbe73b43974f86e81ddd780, type: 3}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0

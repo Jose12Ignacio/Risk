@@ -8,6 +8,8 @@ public class Client
 {
     private TcpClient client;
     private NetworkStream stream;
+    public event Action OnConnected;
+    public event Action<string> OnConnectionError;
 
     public string playerName;
 
@@ -26,12 +28,15 @@ public class Client
             stream = client.GetStream(); //Establece el canal de comunicación
             Debug.Log("Conectado al servidor");
 
+            OnConnected?.Invoke();
+
             // Empezar a recibir mensajes
             _ = ReceiveMessages();
         }
         catch (Exception ex) //Avisar si hubo un error en la conexión
         {
             Debug.LogError($"No se pudo conectar: {ex.Message}");
+            OnConnectionError?.Invoke(ex.Message);
         }
     }
 

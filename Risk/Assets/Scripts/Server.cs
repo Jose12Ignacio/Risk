@@ -8,7 +8,7 @@ using UnityEngine;
 public class Server
 {
     private TcpListener listener;
-    private List<TcpClient> clients = new List<TcpClient>(); //Hay que cambiar esto, crear la lista propia
+    private ListNodeTPC head = null; //Hay que cambiar esto, crear la lista propia
     private bool isRunning = false;
 
     public async Task StartServer(int port) //Acá se inicia el server, aclarar que aquí el host del server aún no esta en el juego, ocupa crear su propio client
@@ -24,10 +24,15 @@ public class Server
         {
             while (isRunning) //Acepta clientes, siempre debe estar corriendo
             {
-                if (clients.Count < 3) //Si hay menos de 3 jugadores
+                if (ListNodeTPC.Count(head) < 3) //Si hay menos de 3 jugadores
                 {
                     TcpClient client = await listener.AcceptTcpClientAsync(); //Espera a que alguien se una y crea su objeto cliente
-                    clients.Add(client);
+                    if (head == null)
+                    {
+                        head.Client = client;
+                    }
+                    ListNodeTPC newNodeTPC = new ListNodeTPC(client);
+                    ListNodeTPC.addLast(head, newNodeTPC);
 
                     Debug.Log("Nuevo cliente conectado.");
 

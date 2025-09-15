@@ -112,7 +112,6 @@ namespace CrazyRisk
                 Tropas.Add(new Tropa(color));
         }
 
-        // Refuerzos
         public void RecibirRefuerzos(int cantidad)
         {
             TropasDisponibles += cantidad;
@@ -120,19 +119,6 @@ namespace CrazyRisk
                 Tropas.Add(new Tropa(Color));
         }
 
-        // Asignar tropas a un territorio
-        public void AsignarTropa(Territorio territorio, int cantidad)
-        {
-            if (cantidad <= 0 || cantidad > TropasDisponibles)
-                throw new InvalidOperationException("Cantidad de tropas no válida.");
-            if (territorio.Duenio != this)
-                throw new InvalidOperationException("No puedes colocar tropas en un territorio enemigo.");
-
-            territorio.AgregarTropas(cantidad);
-            TropasDisponibles -= cantidad;
-        }
-
-        // Manejo de tarjetas
         public void RecibirTarjeta(Tarjeta tarjeta)
         {
             if (Tarjetas.Count >= 6)

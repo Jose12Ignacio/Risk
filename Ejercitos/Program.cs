@@ -1,138 +1,146 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace CrazyRisk.Core
+namespace CrazyRisk
 {
-    // --------------------------
-    // TARJETA
-    // --------------------------
-    public enum TipoTarjeta { Infanteria, Caballeria, Artilleria }
+    // Tipos de cartas
+    public enum TipoTarjeta
+    {
+        Infanteria,
+        Caballeria,
+        Artilleria,
+        Comodin
+    }
 
+    // Continentes
+    public enum Continente
+    {
+        AmericaNorte,
+        AmericaSur,
+        Europa,
+        Africa,
+        Asia,
+        Oceania
+    }
+
+    // Identificador de territorios (lo puedes completar después)
+    public enum TerritorioId
+    {
+        // Aquí luego van los 42 territorios...
+    }
+
+    // Clase Tarjeta
     public class Tarjeta
     {
-        public TipoTarjeta Tipo { get; private set; }
-        public string TerritorioAsociado { get; private set; } // opcional, por si la carta tiene nombre
+        public TipoTarjeta Tipo { get; }
+        public TerritorioId? Territorio { get; }
+        public bool EsComodin => Tipo == TipoTarjeta.Comodin;
 
-        public Tarjeta(TipoTarjeta tipo, string territorioAsociado = null)
+        public Tarjeta(TipoTarjeta tipo, TerritorioId? territorio = null)
         {
             Tipo = tipo;
-            TerritorioAsociado = territorioAsociado;
+            Territorio = territorio;
         }
 
-        public override string ToString() => $"{Tipo}" + (TerritorioAsociado != null ? $" ({TerritorioAsociado})" : "");
+        public override string ToString()
+            => EsComodin ? "Comodín" : $"{Tipo} - {Territorio}";
     }
 
-    // --------------------------
-    // TERRITORIO
-    // --------------------------
+    // Clase Tropa
+    public class Tropa
+    {
+        public string Color { get; }
+
+        public Tropa(string color)
+        {
+            Color = color;
+        }
+
+        public override string ToString() => $"Tropa {Color}";
+    }
+
+    // Clase Territorio (sin vecinos aún)
     public class Territorio
     {
-        public string Nombre { get; private set; }
-        public Ejercito Duenio { get; private set; }
+        public TerritorioId Id { get; }
+        public string Nombre { get; }
+        public Continente Continente { get; }
+        public Ejercito? Duenio { get; private set; }
         public int Tropas { get; private set; }
+        public List<TerritorioId> Vecinos { get; } = new List<TerritorioId>();
 
-        public Territorio(string nombre, Ejercito duenioInicial, int tropasIniciales = 1)
+        public Territorio(TerritorioId id, string nombre, Continente continente)
         {
-            if (tropasIniciales < 1) throw new ArgumentException("Un territorio no puede quedar con 0 tropas.");
+            Id = id;
             Nombre = nombre;
-            Duenio = duenioInicial;
-            Tropas = tropasIniciales;
+            Continente = continente;
         }
 
-        public void CambiarDuenio(Ejercito nuevoDuenio)
+        public void CambiarDuenio(Ejercito nuevoDuenio) => Duenio = nuevoDuenio;
+
+        public void AgregarTropas(int n)
         {
-            Duenio = nuevoDuenio;
+            if (n <= 0) throw new InvalidOperationException("Cantidad inválida.");
+            Tropas += n;
         }
 
-        public void AgregarTropas(int cantidad)
+        public void QuitarTropas(int n)
         {
-            if (cantidad <= 0) throw new ArgumentException("La cantidad a agregar debe ser positiva.");
-            Tropas += cantidad;
+            if (n <= 0 || n > Tropas) throw new InvalidOperationException("Cantidad inválida.");
+            Tropas -= n;
         }
 
-        public void QuitarTropas(int cantidad)
-        {
-            if (cantidad <= 0) throw new ArgumentException("La cantidad a quitar debe ser positiva.");
-            if (Tropas - cantidad < 1) throw new InvalidOperationException("Un territorio no puede quedar vacío (mínimo 1).");
-            Tropas -= cantidad;
-        }
-
-        public override string ToString() => $"{Nombre} - {Duenio?.Alias ?? "Sin dueño"} - Tropas: {Tropas}";
+        public override string ToString() => $"{Nombre} [{Continente}] - Tropas: {Tropas}";
     }
 
-    // --------------------------
-    // EJERCITO
-    // --------------------------
+    // Clase Ejercito
     public class Ejercito
     {
-        public string Alias { get; private set; }
-        public string Color { get; private set; }
+        public string Alias { get; }
+        public string Color { get; }
         public int TropasDisponibles { get; private set; }
-
-        // (Prototipo con List<T>—luego lo cambiamos por una estructura propia si hace falta)
-        public List<Territorio> Territorios { get; private set; } = new List<Territorio>();
-        public List<Tarjeta> Tarjetas { get; private set; } = new List<Tarjeta>();
+        public List<Tropa> Tropas { get; } = new List<Tropa>();
+        public List<Tarjeta> Tarjetas { get; } = new List<Tarjeta>();
 
         public Ejercito(string alias, string color, int tropasIniciales)
         {
             Alias = alias;
             Color = color;
             TropasDisponibles = tropasIniciales;
+
+            for (int i = 0; i < tropasIniciales; i++)
+                Tropas.Add(new Tropa(color));
         }
 
-        public bool PuedeColocar(int cantidad) => cantidad > 0 && cantidad <= TropasDisponibles;
+        // Refuerzos
+        public void RecibirRefuerzos(int cantidad)
+        {
+            TropasDisponibles += cantidad;
+            for (int i = 0; i < cantidad; i++)
+                Tropas.Add(new Tropa(Color));
+        }
 
+        // Asignar tropas a un territorio
         public void AsignarTropa(Territorio territorio, int cantidad)
         {
-            if (territorio == null) throw new ArgumentNullException(nameof(territorio));
-            if (territorio.Duenio != this) throw new InvalidOperationException("Solo puedes asignar tropas a tus territorios.");
-            if (!PuedeColocar(cantidad)) throw new InvalidOperationException("No hay suficientes tropas disponibles.");
+            if (cantidad <= 0 || cantidad > TropasDisponibles)
+                throw new InvalidOperationException("Cantidad de tropas no válida.");
+            if (territorio.Duenio != this)
+                throw new InvalidOperationException("No puedes colocar tropas en un territorio enemigo.");
 
             territorio.AgregarTropas(cantidad);
             TropasDisponibles -= cantidad;
         }
 
-        public void RecibirRefuerzos(int cantidad)
-        {
-            if (cantidad <= 0) throw new ArgumentException("Los refuerzos deben ser positivos.");
-            TropasDisponibles += cantidad;
-        }
-
-        public void ConquistarTerritorio(Territorio territorio, int tropasMovidas)
-        {
-            if (territorio == null) throw new ArgumentNullException(nameof(territorio));
-            if (tropasMovidas <= 0) throw new ArgumentException("Debes mover al menos 1 tropa.");
-            if (tropasMovidas > TropasDisponibles) throw new InvalidOperationException("No tienes tantas tropas para mover.");
-
-            // Si el territorio tenía otro dueño, quítalo de su lista
-            if (territorio.Duenio != null && territorio.Duenio != this)
-                territorio.Duenio.Territorios.Remove(territorio);
-
-            territorio.CambiarDuenio(this);
-            territorio.AgregarTropas(tropasMovidas);
-            TropasDisponibles -= tropasMovidas;
-
-            if (!Territorios.Contains(territorio))
-                Territorios.Add(territorio);
-        }
-
-        public void AñadirTerritorioInicial(Territorio t)
-        {
-            if (t == null) throw new ArgumentNullException(nameof(t));
-            if (t.Duenio != this) throw new InvalidOperationException("El territorio no pertenece a este ejército.");
-            if (!Territorios.Contains(t)) Territorios.Add(t);
-        }
-
+        // Manejo de tarjetas
         public void RecibirTarjeta(Tarjeta tarjeta)
         {
-            if (tarjeta == null) throw new ArgumentNullException(nameof(tarjeta));
-            if (Tarjetas.Count >= 6) throw new InvalidOperationException("Máximo 6 tarjetas por ejército.");
+            if (Tarjetas.Count >= 6)
+                throw new InvalidOperationException("Máximo 6 tarjetas permitidas.");
             Tarjetas.Add(tarjeta);
         }
 
-        public override string ToString() =>
-            $"Ejército {Alias} ({Color}) - Tropas disp.: {TropasDisponibles} | Territorios: {Territorios.Count} | Tarjetas: {Tarjetas.Count}";
+        public override string ToString()
+            => $"Ejército {Alias} ({Color}) - Tropas: {TropasDisponibles}, Tarjetas: {Tarjetas.Count}";
     }
 }
-
-

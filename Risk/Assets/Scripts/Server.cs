@@ -8,7 +8,7 @@ using UnityEngine;
 public class Server
 {
     private TcpListener listener;
-    private ListNodeTPC head = null; //Hay que cambiar esto, crear la lista propia
+    private ListNode clients = new ListNode();
     private bool isRunning = false;
 
     public async Task StartServer(int port) //Acá se inicia el server, aclarar que aquí el host del server aún no esta en el juego, ocupa crear su propio client
@@ -24,15 +24,16 @@ public class Server
         {
             while (isRunning) //Acepta clientes, siempre debe estar corriendo
             {
-                if (ListNodeTPC.Count(head) < 3) //Si hay menos de 3 jugadores
+                if (clients.Count() < 3) //Si hay menos de 3 jugadores
                 {
                     TcpClient client = await listener.AcceptTcpClientAsync(); //Espera a que alguien se una y crea su objeto cliente
-                    if (head == null)
+                    if (clients.head == null)
                     {
-                        head.Client = client;
+                        clients.head.client = client;
                     }
-                    ListNodeTPC newNodeTPC = new ListNodeTPC(client);
-                    ListNodeTPC.addLast(head, newNodeTPC);
+                    Node newNode = new Node();
+                    newNode.client = client;
+                    clients.addLast(newNode);
 
                     Debug.Log("Nuevo cliente conectado.");
 
@@ -76,9 +77,9 @@ public class Server
         }
         finally //Cuando el bucle de esta función termina se desconecta
         {
-            clients.Remove(client);
+            clients.remove(client);
             client.Close();
-            Debug.Log($"Cliente desconectado. Total: {clients.Count}");
+            Debug.Log($"Cliente desconectado. Total: {clients.Count()}");
         }
     }
 
@@ -86,14 +87,15 @@ public class Server
     {
         string json = JsonUtility.ToJson(action); //Convertir el objeto de TurnInfo a JSON
         byte[] data = System.Text.Encoding.UTF8.GetBytes(json); //Luego a cadena de bytes para que pueda enviarse
+        Node curr = clients.head;
 
-        foreach (var client in clients) 
+        while (curr != null)
         {
-            if (client != sender) //Evita que se envie al emisor.
-            { 
+            if (curr.client != sender) //Evita que se envie al emisor.
+            {
                 try
                 {
-                    NetworkStream stream = client.GetStream(); //Busca el canal del respectivo cliente
+                    NetworkStream stream = curr.client.GetStream(); //Busca el canal del respectivo cliente
                     await stream.WriteAsync(data, 0, data.Length); //Espera a que se envie
                 }
                 catch
@@ -101,6 +103,7 @@ public class Server
                     // Ignorar clientes desconectados
                 }
             }
+            curr = curr.next;
         }
     }
 

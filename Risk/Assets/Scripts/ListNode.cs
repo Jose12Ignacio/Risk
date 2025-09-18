@@ -2,17 +2,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Net.Sockets;
 
-public class ListNodeTPC
+public class ListNode
 {
-    public TcpClient Client;
-    public ListNodeTPC Next;
-    
-    public ListNodeTPC(TcpClient client)
+    public Node head;
+
+    public ListNode()
     {
-        Client = client;
-        Next = null;
+        head = null;
     }
-    public static int Count(ListNodeTPC head)
+    public int Count()
     {
         if (head == null) return 0;
 
@@ -21,18 +19,45 @@ public class ListNodeTPC
         while (head != null)
         {
             i++;
-            head = head.Next;
+            head = head.next;
         }
         return i;
     }
 
-    public static void addLast(ListNodeTPC head, ListNodeTPC newNode)
+    public void addLast(Node newNode)
     {
 
-        while (head.Next != null)
+        while (head.next != null)
         {
-            head = head.Next;
+            head = head.next;
         }
-        head.Next = newNode;
+        head.next = newNode;
+    }
+
+    public void remove(TcpClient client)
+    {
+        Node prev = null;
+
+        while (head != null)
+        {
+            if (head.client == client)
+            {
+                if (prev != null)
+                {
+                    prev.next = head.next;
+                    head.next = null;
+                }
+            }
+            if (prev == null)
+            {
+                prev = head;
+            }
+            else
+            {
+                prev = prev.next;
+            }
+            head = head.next;
+
+        }
     }
 }

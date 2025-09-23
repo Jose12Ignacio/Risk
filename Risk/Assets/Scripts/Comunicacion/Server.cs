@@ -4,11 +4,12 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEditor;
 
 public class Server
 {
     private TcpListener listener;
-    private ListNode clients = new ListNode();
+    public ListNode clients = new ListNode();
     private bool isRunning = false;
 
     public async Task StartServer(int port) //Acá se inicia el server, aclarar que aquí el host del server aún no esta en el juego, ocupa crear su propio client
@@ -17,8 +18,6 @@ public class Server
         listener = new TcpListener(IPAddress.Any, port); //Crear el servidor e inciar
         listener.Start();
         isRunning = true;
-
-        Debug.Log("Servidor esperando clientes");
 
         _ = Task.Run(async () => //Acá corremos este código en segundo plano
         {
@@ -35,7 +34,6 @@ public class Server
                     newNode.client = client;
                     clients.addLast(newNode);
 
-                    Debug.Log("Nuevo cliente conectado.");
 
                     _ = HandleClient(client); //Función que maneja al cliente
                 }
@@ -47,7 +45,8 @@ public class Server
         });
     }
 
-    private async Task HandleClient(TcpClient client) //Va a gestionar los mensajes que lleguen del cliente para enciarlos a otros
+    public
+     async Task HandleClient(TcpClient client) //Va a gestionar los mensajes que lleguen del cliente para enciarlos a otros
     {
         NetworkStream stream = client.GetStream(); //Este es el canal por donde se transmiten datos
         byte[] buffer = new byte[1024];
@@ -111,13 +110,16 @@ public class Server
     {
         isRunning = false; //Detiene el bucle del server
 
-        foreach (var client in clients)
+        while (clients.head != null)
         {
-            client.Close(); //Eliminar todos los clientes
+            clients.head.client.Close(); //Eliminar todos los clientes
+            clients.head = clients.head.next;
         }
-        clients.Clear();
+        clients.clear();
 
         listener.Stop();//Cerrar el servidor
         Debug.Log("Servidor cerrado.");
     }
+
+
 }

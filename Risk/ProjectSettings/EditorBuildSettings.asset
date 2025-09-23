@@ -12,7 +12,7 @@ EditorBuildSettings:
     path: Assets/Scenes/LogIn.unity
     guid: c7895462edb989df1a7a7efa2a6d8d7b
   - enabled: 1
-    path: Assets/Scenes/Game_room.unity
+    path: Assets/Scenes/GameRoom.unity
     guid: 0d2147c95c12511488605db13e17092a
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

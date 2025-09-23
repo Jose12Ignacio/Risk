@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Client
 {
@@ -61,7 +62,7 @@ public class Client
     // Recibir mensajes del servidor
     private async Task ReceiveMessages() //Recibe los mensajes que el servidor envia
     {
-        byte[] buffer = new byte[1024]; //Cambiar esta parte, hacer el array propio
+        byte[] buffer = new byte[1024];
         try
         {
             while (client.Connected)
@@ -72,7 +73,7 @@ public class Client
                 string json = Encoding.UTF8.GetString(buffer, 0, bytesRead); //Convertir de bytes a Json y a TurnInfo
                 TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
 
-                //En esta parte se puede actualizar el estado de juego
+                GameManager.Instance.manageMessages(receivedAction);
 
                 Debug.Log($"Mensaje recibido de {receivedAction.playerName}: {receivedAction.actionType}");
             }
@@ -84,6 +85,7 @@ public class Client
         finally
         {
             client.Close();
+            SceneManager.LoadScene("Login");
             Debug.Log("Conexión cerrada");
         }
     }

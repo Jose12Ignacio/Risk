@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine.UI;
 using System.Collections;
 using System.Threading.Tasks;
+using UnityEngine.SceneManagement;
 
 public class Login_manager : MonoBehaviour
 {
@@ -12,15 +13,14 @@ public class Login_manager : MonoBehaviour
     private Color defaultColor;
     public AudioSource audioSource;
     public AudioClip errorSound;
+    
 
-    public ClientManager clientManager;
-
-    public ServerManager serverManager;
 
     void Start()
     {
         defaultColor = inputUsername.image.color;
     }
+
 
     public void OnClickSetClient()
     {
@@ -31,7 +31,8 @@ public class Login_manager : MonoBehaviour
     {
         User_info.username = inputUsername.text;
         User_info.ip = inputIp.text;
-        clientManager.ConnectToServer();
+        User_info.manager = false;
+        GameRoomManager.Instance.clientManager.ConnectToServer(); //Establecer informacion del usuario que esta en los inputs
     }
 
 
@@ -46,26 +47,33 @@ public class Login_manager : MonoBehaviour
         if (string.IsNullOrWhiteSpace(inputUsername.text))
         {
             ShowInputError(inputUsername); // Mostrar error visual
+            
         }
         else
         {
             User_info.username = inputUsername.text;
             User_info.ip = inputIp.text;
+            User_info.manager = true;
+            Debug.Log("Info");
 
-            Debug.Log(User_info.username);
-            Debug.Log(User_info.ip);
-            Debug.Log("Información seteada");
 
             // Llamada async al server manager
-            if (serverManager != null)
+            if (GameRoomManager.Instance != null)
             {
-                serverManager.StartServerAndLocalPlayer(); // Debe ser async Task
+                Debug.Log("Instance existe");
+                if (GameRoomManager.Instance.serverManager != null)
+                {
+                    Debug.Log("Server existe");
+                    GameRoomManager.Instance.serverManager.StartServerAndLocalPlayer(); // Debe ser async Task
+                }
+
             }
+
         }
     }
     
 
-    public void ShowInputError(TMP_InputField field)
+    public void ShowInputError(TMP_InputField field) //Cambia el sonido y color del input al tener un error.
     {
         StartCoroutine(InputErrorCoroutine(field));
     }

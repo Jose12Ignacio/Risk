@@ -23,10 +23,10 @@ public class GameManager : MonoBehaviour
     }
     public void StartGame(TurnInfo message) //Inicia el juego
     {
-        playersList = serverManager.server.clients;
+        playersList = serverManager.server.clients; //Copia la lista de jugadores conectados
         Debug.Log("Juego iniciado para todos los jugadores.");
         SceneManager.LoadScene("Game");
-        
+        playersList.NextPlayer(); //Selecciona el primer jugador en la lista
     }
 
     public void manageMessages(TurnInfo turnInfo)

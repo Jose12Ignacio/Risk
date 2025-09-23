@@ -12,6 +12,7 @@ public class ListNode
     public ListNode()
     {
         head = null;
+        currPlayer = null;
     }
     public int Count()
     {
@@ -78,5 +79,15 @@ public class ListNode
     {
         head = null;
     }
-    
+    public void NextPlayer()
+    {
+        if (currPlayer == null || currPlayer.next == null)
+        {
+            currPlayer = head;
+        }
+        else
+        {
+            currPlayer = currPlayer.next;
+        }
+    }
 }

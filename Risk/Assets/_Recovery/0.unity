@@ -758,7 +758,6 @@ MonoBehaviour:
   startGameButton: {fileID: 0}
   clientManager: {fileID: 704387482}
   serverManager: {fileID: 704387481}
-  playersNumber: {fileID: 0}
 --- !u!4 &359023856
 Transform:
   m_ObjectHideFlags: 0
@@ -1962,6 +1961,7 @@ MonoBehaviour:
   errorColor: {r: 1, g: 0, b: 0, a: 1}
   audioSource: {fileID: 1417328825}
   errorSound: {fileID: 8300000, guid: 52dfbdef7fbe73b43974f86e81ddd780, type: 3}
+  playersNumber: {fileID: 0}
 --- !u!82 &1417328825
 AudioSource:
   m_ObjectHideFlags: 0

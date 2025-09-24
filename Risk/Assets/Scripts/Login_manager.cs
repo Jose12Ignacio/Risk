@@ -32,7 +32,7 @@ public class Login_manager : MonoBehaviour
         User_info.username = inputUsername.text;
         User_info.ip = inputIp.text;
         User_info.manager = false;
-        GameRoomManager.Instance.clientManager.ConnectToServer(); //Establecer informacion del usuario que esta en los inputs
+        GameManager.Instance.clientManager.ConnectToServer(); //Establecer informacion del usuario que esta en los inputs
     }
 
 
@@ -61,10 +61,10 @@ public class Login_manager : MonoBehaviour
             if (GameRoomManager.Instance != null)
             {
                 Debug.Log("Instance existe");
-                if (GameRoomManager.Instance.serverManager != null)
+                if (GameManager.Instance.serverManager != null)
                 {
                     Debug.Log("Server existe");
-                    GameRoomManager.Instance.serverManager.StartServerAndLocalPlayer(); // Debe ser async Task
+                    GameManager.Instance.serverManager.StartServerAndLocalPlayer(); // Debe ser async Task
                 }
 
             }

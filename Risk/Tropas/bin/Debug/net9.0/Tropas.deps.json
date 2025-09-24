@@ -1,0 +1,56 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "Tropas/1.0.0": {
+        "dependencies": {
+          "Ejercitos": "1.0.0",
+          "Territorios": "1.0.0"
+        },
+        "runtime": {
+          "Tropas.dll": {}
+        }
+      },
+      "Ejercitos/1.0.0": {
+        "runtime": {
+          "Ejercitos.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Territorios/1.0.0": {
+        "dependencies": {
+          "Ejercitos": "1.0.0"
+        },
+        "runtime": {
+          "Territorios.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Tropas/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Ejercitos/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Territorios/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

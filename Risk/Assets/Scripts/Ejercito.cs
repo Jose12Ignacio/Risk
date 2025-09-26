@@ -25,8 +25,7 @@ namespace CrazyRisk.Core
 
         public void RecibirTarjeta(Tarjeta tarjeta)
         {
-            if (Tarjetas.Count >= 6)
-                throw new InvalidOperationException("Máximo 6 tarjetas permitidas.");
+            if (Tarjetas.Count >= 6) throw new InvalidOperationException("Máximo 6 tarjetas permitidas.");
             Tarjetas.Add(tarjeta);
         }
 

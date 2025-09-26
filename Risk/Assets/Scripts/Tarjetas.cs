@@ -3,14 +3,6 @@ using System.Collections.Generic;
 
 namespace CrazyRisk.Core
 {
-    public enum TipoTarjeta
-    {
-        Infanteria,
-        Caballeria,
-        Artilleria,
-        Comodin
-    }
-
     public class Tarjeta
     {
         public TipoTarjeta Tipo { get; }
@@ -23,8 +15,7 @@ namespace CrazyRisk.Core
             Territorio = territorio;
         }
 
-        public override string ToString()
-            => EsComodin ? "Comodín" : $"{Tipo} - {Territorio}";
+        public override string ToString() => EsComodin ? "Comodín" : $"{Tipo} - {Territorio}";
     }
 
     public class MazoTarjetas
@@ -35,11 +26,6 @@ namespace CrazyRisk.Core
 
         public int Count => _mazo.Count;
         public int CountDescarte => _descarte.Count;
-
-        public MazoTarjetas()
-        {
-            // Aquí más adelante vas a poblar el mazo con las 42 cartas + 2 comodines
-        }
 
         public void Barajar()
         {
@@ -57,13 +43,12 @@ namespace CrazyRisk.Core
                 if (_descarte.Count == 0)
                     throw new InvalidOperationException("No hay cartas en el mazo ni en el descarte.");
 
-                // reinyectar descarte en el mazo
                 _mazo.AddRange(_descarte);
                 _descarte.Clear();
                 Barajar();
             }
 
-            var top = _mazo[^1];
+            var top = _mazo[_mazo.Count - 1]; // equivalente a _mazo[^1];
             _mazo.RemoveAt(_mazo.Count - 1);
             return top;
         }
@@ -73,7 +58,6 @@ namespace CrazyRisk.Core
         public static bool EsTrioValido(IList<Tarjeta> trio)
         {
             if (trio == null || trio.Count != 3) return false;
-
             int comodines = 0, inf = 0, cab = 0, art = 0;
 
             foreach (var t in trio)
@@ -84,25 +68,17 @@ namespace CrazyRisk.Core
                 else if (t.Tipo == TipoTarjeta.Artilleria) art++;
             }
 
-            // Tres iguales (considerando comodines)
             if (inf + comodines >= 3 && inf > 0) return true;
             if (cab + comodines >= 3 && cab > 0) return true;
             if (art + comodines >= 3 && art > 0) return true;
 
-            // Uno de cada (comodines completan faltantes)
-            int faltantes = 0;
-            if (inf == 0) faltantes++;
-            if (cab == 0) faltantes++;
-            if (art == 0) faltantes++;
+            int faltantes = (inf == 0 ? 1 : 0) + (cab == 0 ? 1 : 0) + (art == 0 ? 1 : 0);
             if (faltantes <= comodines) return true;
 
-            // Dos comodines + 1 cualquiera
             if (comodines == 2 && (inf + cab + art) == 1) return true;
 
             return false;
         }
-
-        // 👉 Aquí luego harás un método para poblar el mazo base (42 territorios + 2 comodines)
-        // private void ConstruirMazoBase() { ... }
     }
 }
+

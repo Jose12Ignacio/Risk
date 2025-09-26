@@ -13,7 +13,7 @@ namespace CrazyRisk.Core
         public int Tropas { get; private set; }
         public List<TerritorioId> Vecinos { get; } = new List<TerritorioId>();
 
-        public Territorio(TerritorioId id, string nombre, Continente cont)
+        public Territorio(TerritorioId id, string nombre, Continente continente)
         {
             Id = id;
             Nombre = nombre;
@@ -38,8 +38,6 @@ namespace CrazyRisk.Core
 
             Tropas -= cantidad;
         }
-
-        public bool EsVecinoDe(TerritorioId otro) => Vecinos.Contains(otro);
 
         public override string ToString()
         {

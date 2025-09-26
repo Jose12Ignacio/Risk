@@ -1,18 +1,9 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 
 namespace CrazyRisk.Core
 {
-    public enum Continente
-    {
-        AmericaNorte, AmericaSur, Europa, Africa, Asia, Oceania
-    }
-
-    public enum TerritorioId
-    {
-        // Aquí luego irán los 42 territorios (de momento vacío)
-    }
-
     public class Territorio
     {
         public TerritorioId Id { get; }
@@ -26,49 +17,34 @@ namespace CrazyRisk.Core
         {
             Id = id;
             Nombre = nombre;
-            Continente = cont;
+            Continente = continente;
+            Tropas = 0;
         }
 
         public void CambiarDuenio(Ejercito nuevoDuenio) => Duenio = nuevoDuenio;
 
-        public void AgregarTropas(int n)
+        public void AgregarTropas(int cantidad)
         {
-            if (n <= 0) throw new InvalidOperationException("Cantidad inválida.");
-            Tropas += n;
+            if (cantidad <= 0)
+                throw new InvalidOperationException("La cantidad de tropas a agregar debe ser positiva.");
+
+            Tropas += cantidad;
         }
 
-        public void QuitarTropas(int n)
+        public void QuitarTropas(int cantidad)
         {
-            if (n <= 0 || n > Tropas) throw new InvalidOperationException("Cantidad inválida.");
-            Tropas -= n;
+            if (cantidad <= 0 || cantidad > Tropas)
+                throw new InvalidOperationException("Cantidad de tropas inválida.");
+
+            Tropas -= cantidad;
         }
 
         public bool EsVecinoDe(TerritorioId otro) => Vecinos.Contains(otro);
 
-        public override string ToString() => $"{Nombre} [{Continente}] - Tropas: {Tropas}";
-    }
-
-    public static class MapaRisk
-    {
-        public static Dictionary<TerritorioId, Territorio> Crear()
+        public override string ToString()
         {
-            var t = new Dictionary<TerritorioId, Territorio>();
-
-            // Aquí más adelante se agregarán los 42 territorios y sus adyacencias
-
-            return t;
-        }
-
-        private static Territorio T(TerritorioId id, string nombre, Continente c) =>
-            new Territorio(id, nombre, c);
-
-        private static void Add(Dictionary<TerritorioId, Territorio> map, TerritorioId a, params TerritorioId[] vecinos)
-        {
-            foreach (var v in vecinos)
-            {
-                if (!map[a].Vecinos.Contains(v)) map[a].Vecinos.Add(v);
-                if (!map[v].Vecinos.Contains(a)) map[v].Vecinos.Add(a);
-            }
+            string duenioStr = Duenio == null ? "Sin dueño" : Duenio.Alias;
+            return $"{Nombre} [{Continente}] - Tropas: {Tropas}, Dueño: {duenioStr}";
         }
     }
 }

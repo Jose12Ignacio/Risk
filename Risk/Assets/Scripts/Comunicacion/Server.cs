@@ -55,16 +55,16 @@ public class Server
         {
             while (client.Connected)
             {
+                Debug.Log("Esperando");
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length); //Recibe un arreglo de bytes del cliente, tal vez tengamos que cambiar esto ya que es una lista
                 if (bytesRead == 0) break; //Si llega un 0 significa que el cliente se desconectó, entonces sale del bucle
+                Debug.Log("Recibido");
 
                 //Convertir bytes a un string
                 string json = System.Text.Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                 //Convertir el string, que es un JSON, a un objeto de la información del turno.
                 TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
-
-                Debug.Log($"Jugador: {receivedAction.playerName}, Acción: {receivedAction.actionType}, De: {receivedAction.fromTerritory}, A: {receivedAction.toTerritory}, Tropas: {receivedAction.troops}");
 
                 //Reenviar a los demás jugadores
                 await BroadcastMessage(receivedAction, client); //Espera a recibir un mensaje

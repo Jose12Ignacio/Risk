@@ -757,6 +757,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameRoomManager
   startGameButton: {fileID: 0}
   playersNumber: {fileID: 0}
+  ipCode: {fileID: 0}
   numPlayers: 1
   prevNumPlayers: 0
 --- !u!4 &359023856

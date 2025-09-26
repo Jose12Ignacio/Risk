@@ -15,6 +15,7 @@ public class GameManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            Debug.Log("Instancia creada");
         }
         else
         {
@@ -35,8 +36,12 @@ public class GameManager : MonoBehaviour
         { //Revisa que si se de la alerta de iniciar todo por primera vez
             Instance.StartGame(turnInfo);
         }
-        else if (turnInfo.numPlayers != 0) {
-            GameRoomManager.Instance.UpdatePlayers(turnInfo.numPlayers);
+        else if (turnInfo.gameRoom == true)
+        {
+            GameRoomManager.Instance.UpdatePlayers(turnInfo.numPlayers, turnInfo.ipCode);
+            Debug.Log(turnInfo.ipCode);
+
         }
+        Debug.Log("manageMesagges");
     }
 }

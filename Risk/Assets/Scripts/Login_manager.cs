@@ -33,21 +33,25 @@ public class Login_manager : MonoBehaviour
         User_info.ip = inputIp.text;
         User_info.manager = false;
         GameManager.Instance.clientManager.ConnectToServer(); //Establecer informacion del usuario que esta en los inputs
+        
     }
 
 
     public void OnClickSetServer()
     {
         _ = SetPlayerDataServerAsync(); // Unity ve un void, pero ejecuta la versión async
+        
     }
 
 // Método async que hace todo el trabajo
     private async Task SetPlayerDataServerAsync()
     {
+        Debug.Log("Intentando conectar");
         if (string.IsNullOrWhiteSpace(inputUsername.text))
         {
             ShowInputError(inputUsername); // Mostrar error visual
-            
+            Debug.Log("Error nombre");
+
         }
         else
         {

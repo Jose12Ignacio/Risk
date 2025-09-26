@@ -42,6 +42,7 @@ public class ClientManager : MonoBehaviour
     {
         if (localPlayer != null)
             await localPlayer.SendAction(action); //Llama a la función en si
+        
     }
 
 }

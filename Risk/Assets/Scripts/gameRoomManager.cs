@@ -7,12 +7,11 @@ public class GameRoomManager : MonoBehaviour
 {
     public static GameRoomManager Instance;
     public Button startGameButton;
-    
-    
     public TextMeshProUGUI playersNumber;
+    public TextMeshProUGUI ipCode;
 
     public int numPlayers = 1;
-    public int prevNumPlayers = 0;
+    public int prevNumPlayers = -2;
 
     void Awake()
     {
@@ -39,6 +38,7 @@ public class GameRoomManager : MonoBehaviour
             startGameButton.gameObject.SetActive(false);
 
         playersNumber = GameObject.Find("Text (TMP)  playersNumber")?.GetComponent<TextMeshProUGUI>();
+        ipCode = GameObject.Find("Text (TMP)  ipCode")?.GetComponent<TextMeshProUGUI>();
     }
 
     void OnDestroy()
@@ -56,20 +56,24 @@ public class GameRoomManager : MonoBehaviour
                 if (prevNumPlayers != numPlayers)
                 {
                     playersNumber.text = $"Jugadores conectados: {numPlayers}";
-                    Debug.Log(GameManager.Instance.serverManager.getPlayers());
                     prevNumPlayers = numPlayers;
                     TurnInfo changePlayersNum = new TurnInfo();
                     changePlayersNum.numPlayers = numPlayers;
+                    changePlayersNum.ipCode = GameManager.Instance.serverManager.ip;
+                    changePlayersNum.gameRoom = true;
                     GameManager.Instance.clientManager.SendMove(changePlayersNum);
                 }
-                
+                UpdatePlayers(numPlayers, GameManager.Instance.serverManager.ip);
             }
         }
     }
 
-    public void UpdatePlayers(int players)
+    public void UpdatePlayers(int players, string ip)
     {
         playersNumber.text = $"Jugadores conectados: {players}";
+        ipCode.text = "Ip: " + ip;
+        Debug.Log(ip);
+        Debug.Log("hola");
     }
 
     public void startGame()

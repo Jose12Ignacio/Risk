@@ -73,7 +73,7 @@ public class Client
                 string json = Encoding.UTF8.GetString(buffer, 0, bytesRead); //Convertir de bytes a Json y a TurnInfo
                 TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
 
-                GameManager.Instance.manageMessages(receivedAction);
+                GameManager.Instance.ManageMessages(receivedAction);
 
                 Debug.Log($"Mensaje recibido de {receivedAction.playerName}: {receivedAction.actionType}");
             }

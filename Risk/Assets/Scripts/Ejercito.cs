@@ -1,99 +1,10 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 
-namespace CrazyRisk
+namespace CrazyRisk.Core
 {
-    // Tipos de cartas
-    public enum TipoTarjeta
-    {
-        Infanteria,
-        Caballeria,
-        Artilleria,
-        Comodin
-    }
 
-    // Continentes
-    public enum Continente
-    {
-        AmericaNorte,
-        AmericaSur,
-        Europa,
-        Africa,
-        Asia,
-        Oceania
-    }
-
-    // Identificador de territorios (lo puedes completar después)
-    public enum TerritorioId
-    {
-        // Aquí luego van los 42 territorios...
-    }
-
-    // Clase Tarjeta
-    public class Tarjeta
-    {
-        public TipoTarjeta Tipo { get; }
-        public TerritorioId? Territorio { get; }
-        public bool EsComodin => Tipo == TipoTarjeta.Comodin;
-
-        public Tarjeta(TipoTarjeta tipo, TerritorioId? territorio = null)
-        {
-            Tipo = tipo;
-            Territorio = territorio;
-        }
-
-        public override string ToString()
-            => EsComodin ? "Comodín" : $"{Tipo} - {Territorio}";
-    }
-
-    // Clase Tropa
-    public class Tropa
-    {
-        public string Color { get; }
-
-        public Tropa(string color)
-        {
-            Color = color;
-        }
-
-        public override string ToString() => $"Tropa {Color}";
-    }
-
-    // Clase Territorio (sin vecinos aún)
-    public class Territorio
-    {
-        public TerritorioId Id { get; }
-        public string Nombre { get; }
-        public Continente Continente { get; }
-        public Ejercito? Duenio { get; private set; }
-        public int Tropas { get; private set; }
-        public List<TerritorioId> Vecinos { get; } = new List<TerritorioId>();
-
-        public Territorio(TerritorioId id, string nombre, Continente continente)
-        {
-            Id = id;
-            Nombre = nombre;
-            Continente = continente;
-        }
-
-        public void CambiarDuenio(Ejercito nuevoDuenio) => Duenio = nuevoDuenio;
-
-        public void AgregarTropas(int n)
-        {
-            if (n <= 0) throw new InvalidOperationException("Cantidad inválida.");
-            Tropas += n;
-        }
-
-        public void QuitarTropas(int n)
-        {
-            if (n <= 0 || n > Tropas) throw new InvalidOperationException("Cantidad inválida.");
-            Tropas -= n;
-        }
-
-        public override string ToString() => $"{Nombre} [{Continente}] - Tropas: {Tropas}";
-    }
-
-    // Clase Ejercito
     public class Ejercito
     {
         public string Alias { get; }

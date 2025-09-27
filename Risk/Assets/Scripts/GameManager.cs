@@ -1,42 +1,83 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+[DefaultExecutionOrder(-1000)]
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance; //Instanciar el GameManager
-    public ClientManager clientManager; //Estos son la base que manejan la comunicacion, siempre se deben llamar para enviar mensajes
+    public static GameManager Instance { get; private set; }
+
+    public ClientManager clientManager;
     public ServerManager serverManager;
 
     public ListNode playersList;
+    private int? pendingPlayersUpdate;
 
-    void Awake()
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void Bootstrap()
     {
         if (Instance == null)
         {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
+            var go = new GameObject("GameManager");
+            go.AddComponent<GameManager>();
         }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
-    public void StartGame(TurnInfo message) //Inicia el juego
-    {
-        playersList = serverManager.server.clients; //Copia la lista de jugadores conectados
-        Debug.Log("Juego iniciado para todos los jugadores.");
-        SceneManager.LoadScene("Game");
-        playersList.NextPlayer(); //Selecciona el primer jugador en la lista
     }
 
-    public void manageMessages(TurnInfo turnInfo)
+    void Awake()
     {
-        if (turnInfo.startGame == true)
-        { //Revisa que si se de la alerta de iniciar todo por primera vez
-            Instance.StartGame(turnInfo);
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        serverManager = serverManager ?? GetComponent<ServerManager>() ?? gameObject.AddComponent<ServerManager>();
+        clientManager = clientManager ?? GetComponent<ClientManager>() ?? gameObject.AddComponent<ClientManager>();
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        Debug.Log("[GM] GameManager listo (DontDestroyOnLoad).");
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene s, LoadSceneMode m)
+    {
+        if (s.name == "GameRoom" && pendingPlayersUpdate.HasValue)
+        {
+            if (GameRoomManager.Instance != null)
+                GameRoomManager.Instance.UpdatePlayers(pendingPlayersUpdate.Value);
+            pendingPlayersUpdate = null;
         }
-        else if (turnInfo.numPlayers != 0) {
-            GameRoomManager.Instance.UpdatePlayers(turnInfo.numPlayers);
+    }
+
+    public void StartGame(TurnInfo message)
+    {
+        if (serverManager != null && serverManager.server != null)
+            playersList = serverManager.server.clients;
+        else
+            Debug.LogWarning("[GM] StartGame: serverManager o server nulo; se omite playersList.");
+
+        Debug.Log("[GM] Juego iniciado para todos los jugadores.");
+        SceneManager.LoadScene("Game");
+
+        playersList?.NextPlayer();
+    }
+
+    public void ManageMessages(TurnInfo turnInfo)
+    {
+        if (turnInfo.startGame)
+        {
+            StartGame(turnInfo);
+            return;
+        }
+
+        if (turnInfo.numPlayers > 0)
+        {
+            if (GameRoomManager.Instance != null)
+                GameRoomManager.Instance.UpdatePlayers(turnInfo.numPlayers);
+            else
+                pendingPlayersUpdate = turnInfo.numPlayers;
         }
     }
 }

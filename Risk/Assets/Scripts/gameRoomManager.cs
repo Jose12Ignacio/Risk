@@ -6,13 +6,13 @@ using UnityEngine.SceneManagement;
 public class GameRoomManager : MonoBehaviour
 {
     public static GameRoomManager Instance;
-    public Button startGameButton;
-    
-    
-    public TextMeshProUGUI playersNumber;
+
+    // Cache UI
+    private Button startGameButton;
+    private TextMeshProUGUI playersNumber;
 
     public int numPlayers = 1;
-    public int prevNumPlayers = 0;
+    private int prevNumPlayers = 0;
 
     void Awake()
     {
@@ -21,65 +21,78 @@ public class GameRoomManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
             SceneManager.sceneLoaded += OnSceneLoaded;
+            Debug.Log("[GRM] Instancia creada y marcada como DontDestroyOnLoad.");
         }
-        else
-        {
-            Destroy(gameObject);
-        }
-
-    }
-
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        // Busca los objetos UI en la nueva escena y los asigna
-        startGameButton = GameObject.Find("startGame")?.GetComponent<Button>();
-        if (User_info.manager == true && startGameButton != null)
-            startGameButton.gameObject.SetActive(true);
-        else if (startGameButton != null)
-            startGameButton.gameObject.SetActive(false);
-
-        playersNumber = GameObject.Find("Text (TMP)  playersNumber")?.GetComponent<TextMeshProUGUI>();
+        else { Destroy(gameObject); }
     }
 
     void OnDestroy()
     {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
+        if (Instance == this) SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Botón
+        var btnGO = GameObject.Find("startGame");
+        startGameButton = (btnGO != null) ? btnGO.GetComponent<Button>() : null;
+
+        if (startGameButton != null)
+        {
+            // OJO: NO agregamos AddListener aquí porque ya lo conecta el Inspector
+            startGameButton.gameObject.SetActive(User_info.manager);
+            startGameButton.interactable = User_info.manager;
+        }
+
+        // Texto jugadores
+        var txtGO = GameObject.Find("Text (TMP)  playersNumber"); // dos espacios
+        playersNumber = (txtGO != null) ? txtGO.GetComponent<TextMeshProUGUI>() : null;
+
+        if (playersNumber != null)
+            playersNumber.text = $"Jugadores conectados: {numPlayers}";
     }
 
     void Update()
     {
-        if (SceneManager.GetActiveScene().name == "GameRoom")
+        if (SceneManager.GetActiveScene().name != "GameRoom") return;
+
+        if (User_info.manager && GameManager.Instance?.serverManager != null)
         {
-            if (User_info.manager == true)
+            numPlayers = GameManager.Instance.serverManager.getPlayers();
+            if (prevNumPlayers != numPlayers)
             {
-                numPlayers = GameManager.Instance.serverManager.getPlayers();
-                if (prevNumPlayers != numPlayers)
-                {
-                    playersNumber.text = $"Jugadores conectados: {numPlayers}";
-                    Debug.Log(GameManager.Instance.serverManager.getPlayers());
-                    prevNumPlayers = numPlayers;
-                    TurnInfo changePlayersNum = new TurnInfo();
-                    changePlayersNum.numPlayers = numPlayers;
-                    GameManager.Instance.clientManager.SendMove(changePlayersNum);
-                }
-                
+                UpdatePlayers(numPlayers);
+
+                var changePlayersNum = new TurnInfo { numPlayers = numPlayers };
+                GameManager.Instance.clientManager?.SendMove(changePlayersNum);
             }
         }
     }
 
     public void UpdatePlayers(int players)
     {
-        playersNumber.text = $"Jugadores conectados: {players}";
+        numPlayers = players;
+        prevNumPlayers = players;
+
+        if (playersNumber != null)
+            playersNumber.text = $"Jugadores conectados: {players}";
+        else
+            GameObject.Find("Text (TMP)  playersNumber")
+                ?.GetComponent<TextMeshProUGUI>()
+                ?.SetText($"Jugadores conectados: {players}");
     }
 
-    public void startGame()
+    public void StartGame()
     {
-        if (numPlayers >= 2)
+        Debug.Log("[GRM] StartGame() CLICK");
+        if (numPlayers >= 2 && GameManager.Instance != null)
         {
-            TurnInfo startGameMessage = new TurnInfo(); //Enivar el mensaje a todos de que el juego inicia.
-            startGameMessage.startGame = true;
-            GameManager.Instance.clientManager.SendMove(startGameMessage); //Tal vez agregar mensaje de error si no se cumple.
-            GameManager.Instance.StartGame(startGameMessage);
+            var msg = new TurnInfo { startGame = true };
+            GameManager.Instance.clientManager?.SendMove(msg);
+            GameManager.Instance.StartGame(msg);
+            Debug.Log("[GRM] StartGame enviado.");
         }
+        else Debug.LogWarning("[GRM] Se necesitan al menos 2 jugadores para iniciar.");
     }
 }
+

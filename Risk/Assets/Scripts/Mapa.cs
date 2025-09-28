@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CrazyRisk; // para TerritorioId y Continente
 
 namespace CrazyRisk.Core
 {

@@ -71,28 +71,7 @@ public class GameRoomManager : MonoBehaviour
 
     public void UpdatePlayers(int players)
     {
-        numPlayers = players;
-        prevNumPlayers = players;
-
         if (playersNumber != null)
-            playersNumber.text = $"Jugadores conectados: {players}";
-        else
-            GameObject.Find("Text (TMP)  playersNumber")
-                ?.GetComponent<TextMeshProUGUI>()
-                ?.SetText($"Jugadores conectados: {players}");
-    }
-
-    public void StartGame()
-    {
-        Debug.Log("[GRM] StartGame() CLICK");
-        if (numPlayers >= 2 && GameManager.Instance != null)
-        {
-            var msg = new TurnInfo { startGame = true };
-            GameManager.Instance.clientManager?.SendMove(msg);
-            GameManager.Instance.StartGame(msg);
-            Debug.Log("[GRM] StartGame enviado.");
-        }
-        else Debug.LogWarning("[GRM] Se necesitan al menos 2 jugadores para iniciar.");
+            playersNumber.text = $"Jugadores conectados: {n}";
     }
 }
-

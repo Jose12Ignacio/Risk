@@ -3,62 +3,87 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
 
-[DefaultExecutionOrder(-900)]
 public class GameRoomManager : MonoBehaviour
 {
     public static GameRoomManager Instance;
+    public Button startGameButton;
+    public TextMeshProUGUI playersNumber;
+    public TextMeshProUGUI ipCode;
 
-    private Button startGameButton;
-    private TextMeshProUGUI playersNumber;
-
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    static void Bootstrap()
-    {
-        if (Instance == null)
-        {
-            var go = new GameObject("GameRoomManager");
-            go.AddComponent<GameRoomManager>(); // Awake corre aquí
-        }
-    }
+    public int numPlayers = 1;
+    public int prevNumPlayers = -2;
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        Debug.Log("[GRM] listo (DDL).");
-    }
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
 
-    void OnDestroy()
-    {
-        if (Instance == this) SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (scene.name != "GameRoom") return;
+        // Busca los objetos UI en la nueva escena y los asigna
+        startGameButton = GameObject.Find("startGame")?.GetComponent<Button>();
+        if (User_info.manager == true && startGameButton != null)
+            startGameButton.gameObject.SetActive(true);
+        else if (startGameButton != null)
+            startGameButton.gameObject.SetActive(false);
 
-        var btnGO = GameObject.Find("startGame");
-        var txtGO = GameObject.Find("playersNumber");
+        playersNumber = GameObject.Find("Text (TMP)  playersNumber")?.GetComponent<TextMeshProUGUI>();
+        ipCode = GameObject.Find("Text (TMP)  ipCode")?.GetComponent<TextMeshProUGUI>();
+    }
 
-        startGameButton = btnGO ? btnGO.GetComponent<Button>() : null;
-        playersNumber   = txtGO ? txtGO.GetComponent<TextMeshProUGUI>() : null;
+    void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
 
-        if (startGameButton != null)
+    void Update()
+    {
+        if (SceneManager.GetActiveScene().name == "GameRoom")
         {
-            startGameButton.onClick.RemoveAllListeners();
-            startGameButton.onClick.AddListener(() =>
+            if (User_info.manager == true)
             {
-                Debug.Log("[GRM] StartGame clicado.");
-                GameManager.Instance.ManageMessages(new TurnInfo { startGame = true });
-            });
+                numPlayers = GameManager.Instance.serverManager.getPlayers();
+                if (prevNumPlayers != numPlayers)
+                {
+                    playersNumber.text = $"Jugadores conectados: {numPlayers}";
+                    prevNumPlayers = numPlayers;
+                    TurnInfo changePlayersNum = new TurnInfo();
+                    changePlayersNum.numPlayers = numPlayers;
+                    changePlayersNum.ipCode = GameManager.Instance.serverManager.ip;
+                    changePlayersNum.gameRoom = true;
+                    GameManager.Instance.clientManager.SendMove(changePlayersNum);
+                }
+                UpdatePlayers(numPlayers, GameManager.Instance.serverManager.ip);
+            }
         }
     }
 
-    public void UpdatePlayers(int n)
+    public void UpdatePlayers(int players, string ip)
     {
-        if (playersNumber != null)
-            playersNumber.text = $"Jugadores conectados: {n}";
+        playersNumber.text = $"Jugadores conectados: {players}";
+        ipCode.text = "Ip: " + ip;
+        Debug.Log(ip);
+        Debug.Log("hola");
+    }
+
+    public void startGame()
+    {
+        if (numPlayers >= 2)
+        {
+            TurnInfo startGameMessage = new TurnInfo(); //Enivar el mensaje a todos de que el juego inicia.
+            startGameMessage.startGame = true;
+            GameManager.Instance.clientManager.SendMove(startGameMessage); //Tal vez agregar mensaje de error si no se cumple.
+            GameManager.Instance.StartGame(startGameMessage);
+        }
     }
 }

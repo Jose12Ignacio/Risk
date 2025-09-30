@@ -13,99 +13,83 @@ public class Login_manager : MonoBehaviour
     private Color defaultColor;
     public AudioSource audioSource;
     public AudioClip errorSound;
+    
+
 
     void Start()
     {
-        defaultColor = inputUsername.image != null ? inputUsername.image.color : Color.white;
+        defaultColor = inputUsername.image.color;
     }
+
 
     public void OnClickSetClient()
     {
-        _ = SetPlayerDataClientAsync();
+        _ = SetPlayerDataClientAsync(); // Llama a la versión async pero Unity ve un void
     }
 
     private async Task SetPlayerDataClientAsync()
     {
-        await Task.Yield();
-
-        var nombre = inputUsername.text?.Trim();
-        if (string.IsNullOrEmpty(nombre))
-        {
-            ShowInputError(inputUsername);
-            return;
-        }
-
-        User_info.username = nombre;
-        User_info.ip       = inputIp.text;
-        User_info.manager  = false;
-
-        if (GameManager.Instance != null && GameManager.Instance.clientManager != null)
-        {
-            // Conectar y luego ir a GameRoom
-            GameManager.Instance.clientManager.ConnectToServer();
-            // Si tu clientManager expone un callback OnConnected, muévete allí.
-            // Como atajo: carga la sala tras un pequeño yield.
-            await Task.Delay(100); 
-            SceneManager.LoadScene("GameRoom");
-        }
-        else
-        {
-            Debug.LogError("GameManager.Instance o clientManager es null.");
-            ShowInputError(inputUsername);
-        }
+        User_info.username = inputUsername.text;
+        User_info.ip = inputIp.text;
+        User_info.manager = false;
+        GameManager.Instance.clientManager.ConnectToServer(); //Establecer informacion del usuario que esta en los inputs
+        
     }
+
 
     public void OnClickSetServer()
     {
-        _ = SetPlayerDataServerAsync();
+        _ = SetPlayerDataServerAsync(); // Unity ve un void, pero ejecuta la versión async
+        
     }
 
+// Método async que hace todo el trabajo
     private async Task SetPlayerDataServerAsync()
     {
-        await Task.Yield();
-
-        var nombre = inputUsername.text?.Trim();
-        if (string.IsNullOrEmpty(nombre))
+        Debug.Log("Intentando conectar");
+        if (string.IsNullOrWhiteSpace(inputUsername.text))
         {
-            ShowInputError(inputUsername);
-            return;
-        }
+            ShowInputError(inputUsername); // Mostrar error visual
+            Debug.Log("Error nombre");
 
-        User_info.username = nombre;
-        User_info.ip       = inputIp.text;
-        User_info.manager  = true;
-
-        
-        if (GameManager.Instance != null && GameManager.Instance.serverManager != null)
-        {
-            Debug.Log("[Login] Iniciando servidor y jugador local...");
-            GameManager.Instance.serverManager.StartServerAndLocalPlayer();
-            // Cuando el server esté listo, pasa a la sala
-            await Task.Delay(100);
-            SceneManager.LoadScene("GameRoom");
         }
         else
         {
-            Debug.LogError("GameManager.Instance o serverManager es null.");
-            ShowInputError(inputUsername);
+            User_info.username = inputUsername.text;
+            User_info.ip = inputIp.text;
+            User_info.manager = true;
+            Debug.Log("Info");
+
+
+            // Llamada async al server manager
+            if (GameRoomManager.Instance != null)
+            {
+                Debug.Log("Instance existe");
+                if (GameManager.Instance.serverManager != null)
+                {
+                    Debug.Log("Server existe");
+                    GameManager.Instance.serverManager.StartServerAndLocalPlayer(); // Debe ser async Task
+                }
+
+            }
+
         }
     }
+    
 
-    public void ShowInputError(TMP_InputField field)
+    public void ShowInputError(TMP_InputField field) //Cambia el sonido y color del input al tener un error.
     {
         StartCoroutine(InputErrorCoroutine(field));
     }
 
     private IEnumerator InputErrorCoroutine(TMP_InputField field)
-    {
-        var bg = field.image;
-        var original = bg != null ? bg.color : Color.white;
+        {
+            Image bg = field.image;
+            Color original = bg.color;
 
-        if (bg != null) bg.color = errorColor;
-        if (audioSource != null && errorSound != null)
+            bg.color = errorColor;  
             audioSource.PlayOneShot(errorSound);
-
-        yield return new WaitForSeconds(2);
-        if (bg != null) bg.color = original;
-    }
+            yield return new WaitForSeconds(2);
+            bg.color = original;               
+        }
 }

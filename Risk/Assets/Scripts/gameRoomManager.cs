@@ -11,6 +11,7 @@ public class GameRoomManager : MonoBehaviour
     private Button startGameButton;
     private TextMeshProUGUI playersNumber;
 
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Bootstrap()
     {
@@ -23,11 +24,13 @@ public class GameRoomManager : MonoBehaviour
 
     void Awake()
     {
+
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
         SceneManager.sceneLoaded += OnSceneLoaded;
         Debug.Log("[GRM] listo (DDL).");
+
     }
 
     void OnDestroy()
@@ -57,6 +60,7 @@ public class GameRoomManager : MonoBehaviour
     }
 
     public void UpdatePlayers(int n)
+
     {
         if (playersNumber != null)
             playersNumber.text = $"Jugadores conectados: {n}";

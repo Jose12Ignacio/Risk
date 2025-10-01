@@ -91,8 +91,10 @@ public class Server
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                 if (bytesRead <= 0) break;
 
+
                 string json = System.Text.Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
+
 
                 // OJO: si TurnInfo no tiene playerName, usa otra propiedad
                 Debug.Log($"Acción: {receivedAction.actionType} | De: {receivedAction.fromTerritory} -> {receivedAction.toTerritory} | Tropas: {receivedAction.troops}");

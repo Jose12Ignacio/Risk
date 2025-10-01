@@ -12,5 +12,7 @@ public class TurnInfo //La finalidad de la clase es crear una base para la infor
     public int troops;
     public bool startGame;
     public int numPlayers;
-    public string playerName;    
+    public string playerName;
+    public string ipCode;
+    public bool gameRoom = false;
 }

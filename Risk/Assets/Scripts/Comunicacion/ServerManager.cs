@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using UnityEngine.SceneManagement;
 using TMPro;
+using System.Threading.Tasks;
 
 
 public class ServerManager : MonoBehaviour //Creamos esta clase porque el script de server no está integrado en Unity, es C# puro
@@ -22,7 +23,6 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
     public async void StartServerAndLocalPlayer()
     {
         ip = GetLocalIPAddress();
-        Debug.Log(ip);
         if (System.Net.IPAddress.TryParse(ip, out _))
         {
             Debug.Log("Entro");
@@ -32,9 +32,15 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
             Debug.Log("Servidor iniciado");
 
             Node hostNode = new Node();
+
+            await Task.Delay(500);
+
             TcpClient hostClient = new TcpClient();
+
             await hostClient.ConnectAsync(ip, port);  // Se conecta a su propio servidor
+
             hostNode.client = hostClient;
+
             server.clients.addLast(hostNode);
 
             _ = server.HandleClient(hostClient);

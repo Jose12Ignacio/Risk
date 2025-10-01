@@ -78,7 +78,9 @@ public class GameManager : MonoBehaviour
                 GameRoomManager.Instance.UpdatePlayers(turnInfo.numPlayers);
             else
                 pendingPlayersUpdate = turnInfo.numPlayers;
+
         }
+        Debug.Log("manageMesagges");
     }
 }
 

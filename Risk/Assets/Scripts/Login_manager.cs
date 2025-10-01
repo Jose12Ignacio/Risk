@@ -58,6 +58,7 @@ public class Login_manager : MonoBehaviour
     public void OnClickSetServer()
     {
         _ = SetPlayerDataServerAsync();
+
     }
 
     private async Task SetPlayerDataServerAsync()
@@ -69,6 +70,7 @@ public class Login_manager : MonoBehaviour
         {
             ShowInputError(inputUsername);
             return;
+
         }
 
         User_info.username = nombre;

@@ -4,8 +4,9 @@ using UnityEngine.SceneManagement;
 [DefaultExecutionOrder(-1000)]
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance; //Instanciar el GameManager
-    public ClientManager clientManager; //Estos son la base que manejan la comunicacion, siempre se deben llamar para enviar mensajes
+    public static GameManager Instance { get; private set; }
+
+    public ClientManager clientManager;
     public ServerManager serverManager;
 
     public ListNode playersList;
@@ -59,7 +60,8 @@ public class GameManager : MonoBehaviour
 
         Debug.Log("[GM] Juego iniciado para todos los jugadores.");
         SceneManager.LoadScene("Game");
-        playersList.NextPlayer(); //Selecciona el primer jugador en la lista
+
+        playersList?.NextPlayer();
     }
 
     public void ManageMessages(TurnInfo turnInfo)

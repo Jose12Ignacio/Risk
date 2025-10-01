@@ -92,8 +92,6 @@ public class Server
                 if (bytesRead <= 0) break;
 
                 string json = System.Text.Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-                //Convertir el string, que es un JSON, a un objeto de la información del turno.
                 TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
 
                 // OJO: si TurnInfo no tiene playerName, usa otra propiedad
@@ -121,7 +119,6 @@ public class Server
         byte[] data = System.Text.Encoding.UTF8.GetBytes(json);
 
         Node curr = clients.head;
-
         while (curr != null)
         {
             var c = curr.client;
@@ -155,11 +152,11 @@ public class Server
         Node curr = clients.head;
         while (curr != null)
         {
-            clients.head.client.Close(); //Eliminar todos los clientes
-            clients.head = clients.head.next;
+            try { curr.client?.Close(); } catch { }
+            curr = curr.next;
         }
         clients.clear();
 
         Debug.Log("Servidor cerrado.");
-    }
+    }
 }

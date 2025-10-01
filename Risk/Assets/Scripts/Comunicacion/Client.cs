@@ -51,8 +51,6 @@ public class Client
                 string json = JsonUtility.ToJson(action); //Convertimos el objeto TurnInfo a Json, luego a bytes
                 byte[] data = Encoding.UTF8.GetBytes(json);
                 await stream.WriteAsync(data, 0, data.Length); //Mandamos esos bytes
-                Debug.Log("Enviando");
-                
             }
             catch (Exception ex)
             {

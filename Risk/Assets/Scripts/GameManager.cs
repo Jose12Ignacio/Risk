@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+[DefaultExecutionOrder(-1000)]
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance; //Instanciar el GameManager
@@ -8,40 +9,74 @@ public class GameManager : MonoBehaviour
     public ServerManager serverManager;
 
     public ListNode playersList;
+    private int? pendingPlayersUpdate;
 
-    void Awake()
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void Bootstrap()
     {
         if (Instance == null)
         {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            Debug.Log("Instancia creada");
-        }
-        else
-        {
-            Destroy(gameObject);
+            var go = new GameObject("GameManager");
+            go.AddComponent<GameManager>();
         }
     }
-    public void StartGame(TurnInfo message) //Inicia el juego
+
+    void Awake()
     {
-        playersList = serverManager.server.clients; //Copia la lista de jugadores conectados
-        Debug.Log("Juego iniciado para todos los jugadores.");
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        serverManager = serverManager ?? GetComponent<ServerManager>() ?? gameObject.AddComponent<ServerManager>();
+        clientManager = clientManager ?? GetComponent<ClientManager>() ?? gameObject.AddComponent<ClientManager>();
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        Debug.Log("[GM] GameManager listo (DontDestroyOnLoad).");
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene s, LoadSceneMode m)
+    {
+        if (s.name == "GameRoom" && pendingPlayersUpdate.HasValue)
+        {
+            if (GameRoomManager.Instance != null)
+                GameRoomManager.Instance.UpdatePlayers(pendingPlayersUpdate.Value);
+            pendingPlayersUpdate = null;
+        }
+    }
+
+    public void StartGame(TurnInfo message)
+    {
+        if (serverManager != null && serverManager.server != null)
+            playersList = serverManager.server.clients;
+        else
+            Debug.LogWarning("[GM] StartGame: serverManager o server nulo; se omite playersList.");
+
+        Debug.Log("[GM] Juego iniciado para todos los jugadores.");
         SceneManager.LoadScene("Game");
         playersList.NextPlayer(); //Selecciona el primer jugador en la lista
     }
 
-    public void manageMessages(TurnInfo turnInfo)
+    public void ManageMessages(TurnInfo turnInfo)
     {
-        if (turnInfo.startGame == true)
-        { //Revisa que si se de la alerta de iniciar todo por primera vez
-            Instance.StartGame(turnInfo);
-        }
-        else if (turnInfo.gameRoom == true)
+        if (turnInfo.startGame)
         {
-            GameRoomManager.Instance.UpdatePlayers(turnInfo.numPlayers, turnInfo.ipCode);
-            Debug.Log(turnInfo.ipCode);
-
+            StartGame(turnInfo);
+            return;
         }
-        Debug.Log("manageMesagges");
+
+        if (turnInfo.numPlayers > 0)
+        {
+            if (GameRoomManager.Instance != null)
+                GameRoomManager.Instance.UpdatePlayers(turnInfo.numPlayers);
+            else
+                pendingPlayersUpdate = turnInfo.numPlayers;
+        }
     }
 }
+

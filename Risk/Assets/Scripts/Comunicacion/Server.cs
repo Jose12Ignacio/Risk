@@ -1,125 +1,165 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEditor;
+
 
 public class Server
 {
     private TcpListener listener;
     public ListNode clients = new ListNode();
     private bool isRunning = false;
+    private CancellationTokenSource cts;
 
-    public async Task StartServer(int port) //Acá se inicia el server, aclarar que aquí el host del server aún no esta en el juego, ocupa crear su propio client
-    //Lo que hace async Task es crear hilos, correr código en un segundo plano sin que se congele lo demás
+    
+    public async Task StartServer(int port)
     {
-        listener = new TcpListener(IPAddress.Any, port); //Crear el servidor e inciar
-        listener.Start();
-        isRunning = true;
+        if (isRunning) return;
 
-        _ = Task.Run(async () => //Acá corremos este código en segundo plano
+        try
         {
-            while (isRunning) //Acepta clientes, siempre debe estar corriendo
-            {
-                if (clients.Count() < 3) //Si hay menos de 3 jugadores
-                {
-                    TcpClient client = await listener.AcceptTcpClientAsync(); //Espera a que alguien se una y crea su objeto cliente
-                    if (clients.head == null)
-                    {
-                        clients.head.client = client;
-                    }
-                    Node newNode = new Node();
-                    newNode.client = client;
-                    clients.addLast(newNode);
+            listener = new TcpListener(IPAddress.Any, port);
+            listener.Start();
+            isRunning = true;
+            cts = new CancellationTokenSource();
 
+            // Lanza el aceptador; no esperes aquí
+            _ = AcceptLoopAsync(cts.Token);
 
-                    _ = HandleClient(client); //Función que maneja al cliente
-                }
-                else
-                {
-                    await Task.Delay(500);
-                }
-            }
-        });
+            await Task.CompletedTask; // explícito: método async “completado” tras iniciar
+            Debug.Log($"Servidor escuchando en puerto {port}");
+        }
+        catch (SocketException se)
+        {
+            isRunning = false;
+            Debug.LogError($"No se pudo iniciar el servidor en el puerto {port}: {se.Message}");
+            throw; // o maneja según tu flujo
+        }
     }
 
-    public
-     async Task HandleClient(TcpClient client) //Va a gestionar los mensajes que lleguen del cliente para enciarlos a otros
+
+    private async Task AcceptLoopAsync(CancellationToken token)
     {
-        NetworkStream stream = client.GetStream(); //Este es el canal por donde se transmiten datos
-        byte[] buffer = new byte[1024];
+        try
+        {
+            while (isRunning && !token.IsCancellationRequested)
+            {
+                // Limite de jugadores (3) — ajusta a tu gusto
+                if (clients.Count() >= 3)
+                {
+                    await Task.Delay(250, token);
+                    continue;
+                }
+
+                TcpClient client = await listener.AcceptTcpClientAsync().ConfigureAwait(false);
+
+                // Agregar a la lista correctamente
+                var node = new Node { client = client };
+                if (clients.head == null)
+                    clients.head = node;
+                else
+                    clients.addLast(node);
+
+                Debug.Log($"Cliente conectado. Total: {clients.Count()}");
+
+                _ = HandleClient(client); // atender cliente en segundo plano
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // listener detenido — salir tranquilo
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"AcceptLoop terminó con error: {ex.Message}");
+        }
+    }
+
+    
+    public async Task HandleClient(TcpClient client)
+    {
+        using NetworkStream stream = client.GetStream();
+        byte[] buffer = new byte[4096];
 
         try
         {
             while (client.Connected)
             {
-                Debug.Log("Esperando");
-                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length); //Recibe un arreglo de bytes del cliente, tal vez tengamos que cambiar esto ya que es una lista
-                if (bytesRead == 0) break; //Si llega un 0 significa que el cliente se desconectó, entonces sale del bucle
-                Debug.Log("Recibido");
+                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                if (bytesRead <= 0) break;
 
-                //Convertir bytes a un string
                 string json = System.Text.Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                 //Convertir el string, que es un JSON, a un objeto de la información del turno.
                 TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
 
-                //Reenviar a los demás jugadores
-                await BroadcastMessage(receivedAction, client); //Espera a recibir un mensaje
+                // OJO: si TurnInfo no tiene playerName, usa otra propiedad
+                Debug.Log($"Acción: {receivedAction.actionType} | De: {receivedAction.fromTerritory} -> {receivedAction.toTerritory} | Tropas: {receivedAction.troops}");
+
+                await BroadcastMessage(receivedAction, client);
             }
         }
         catch (Exception ex)
         {
             Debug.LogWarning($"Error con cliente: {ex.Message}");
         }
-        finally //Cuando el bucle de esta función termina se desconecta
+        finally
         {
             clients.remove(client);
-            client.Close();
+            try { client.Close(); } catch { }
             Debug.Log($"Cliente desconectado. Total: {clients.Count()}");
         }
     }
 
+    
     private async Task BroadcastMessage(TurnInfo action, TcpClient sender)
     {
-        string json = JsonUtility.ToJson(action); //Convertir el objeto de TurnInfo a JSON
-        byte[] data = System.Text.Encoding.UTF8.GetBytes(json); //Luego a cadena de bytes para que pueda enviarse
+        string json = JsonUtility.ToJson(action);
+        byte[] data = System.Text.Encoding.UTF8.GetBytes(json);
+
         Node curr = clients.head;
 
         while (curr != null)
         {
-            if (curr.client != sender) //Evita que se envie al emisor.
-            {
-                try
-                {
-                    NetworkStream stream = curr.client.GetStream(); //Busca el canal del respectivo cliente
-                    await stream.WriteAsync(data, 0, data.Length); //Espera a que se envie
-                }
-                catch
-                {
-                    // Ignorar clientes desconectados
-                }
-            }
+            var c = curr.client;
             curr = curr.next;
+
+            if (c == null || c == sender || !c.Connected) continue;
+
+            try
+            {
+                NetworkStream s = c.GetStream();
+                await s.WriteAsync(data, 0, data.Length);
+            }
+            catch
+            {
+                // ignorar clientes caídos; los limpiará HandleClient/StopServer
+            }
         }
     }
 
-    public void StopServer() //Limpia todo una vez el server cierra
-    {
-        isRunning = false; //Detiene el bucle del server
 
-        while (clients.head != null)
+    public void StopServer()
+    {
+        if (!isRunning) return;
+
+        isRunning = false;
+        try { cts?.Cancel(); } catch { }
+
+        try { listener?.Stop(); } catch { }
+
+        // Cerrar clientes
+        Node curr = clients.head;
+        while (curr != null)
         {
             clients.head.client.Close(); //Eliminar todos los clientes
             clients.head = clients.head.next;
         }
         clients.clear();
 
-        listener.Stop();//Cerrar el servidor
         Debug.Log("Servidor cerrado.");
-    }
-
-
+    }
 }

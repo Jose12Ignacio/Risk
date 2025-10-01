@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using System.Net.Sockets;
 
 [Serializable]
 public class TurnInfo //La finalidad de la clase es crear una base para la información que se comparte a las otras computadoras.
@@ -15,4 +16,6 @@ public class TurnInfo //La finalidad de la clase es crear una base para la infor
     public string playerName;
     public string ipCode;
     public bool gameRoom = false;
+
+    public LinkedList<TcpClient> playersList;
 }

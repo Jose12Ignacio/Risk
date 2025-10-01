@@ -53,14 +53,11 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void StartGame(TurnInfo message)
+    public void StartGame(TurnInfo message) // Iniciar el juego cuando se recibe el mensaje de inicio
     {
         if (serverManager.server.clients.Count() >= 2)
         {
-            playersList = serverManager.server.clients; //Lista de los jugadores que van a jugar.
-            playersList.head.color = "red";
-            playersList.head.next.color = "blue";
-            if (playersList.head.next.next != null) playersList.head.next.next.color = "gray";
+            playersList = message.playersList;
             SceneManager.LoadScene("Game");
             playersList?.nextPlayer();
         }

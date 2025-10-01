@@ -61,7 +61,7 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
             await localPlayer.SendAction(action);
     }
 
-    public static string GetLocalIPAddress()
+    public static string GetLocalIPAddress() //Funcion para obtener la ip como string
     {
         string localIP = "";
         try

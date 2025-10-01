@@ -53,13 +53,9 @@ public class GameRoomManager : MonoBehaviour
         if (startGameButton != null)
         {
             startGameButton.onClick.RemoveAllListeners();
-            startGameButton.onClick.AddListener(() =>
-            {
-                Debug.Log("[GRM] StartGame clicado.");
-                GameManager.Instance.ManageMessages(new TurnInfo { startGame = true });
-            });
+            startGameButton.onClick.AddListener(sendStartMessage);
+
         }
-        UpdatePlayers(1, GameManager.Instance.serverManager.ip);
     }
 
     public void UpdatePlayers(int n, string ip)
@@ -67,5 +63,25 @@ public class GameRoomManager : MonoBehaviour
         if (playersNumber != null)
             playersNumber.text = $"Jugadores conectados: {n}";
         ipCode.text = $"Ip: {ip}";
+    }
+
+    public void sendStartMessage()//Va a enviar una el mensaje de incio y pasa a la nueva escena
+    {
+        if (User_info.manager == true)
+        {
+            TurnInfo message = new TurnInfo();
+            message.startGame = true;
+            GameManager.Instance.playersList = GameManager.Instance.serverManager.server.clients;
+            GameManager.Instance.playersList.head.color = "red";
+            GameManager.Instance.playersList.head.next.color = "blue";
+            if (GameManager.Instance.playersList.head.next.next != null) GameManager.Instance.playersList.head.next.next.color = "gray";
+            message.playersList = GameManager.Instance.playersList;
+            GameManager.Instance.playersList.nextPlayer();
+            SceneManager.LoadScene("Game");
+            GameManager.Instance.clientManager.SendMove(message);
+            Debug.Log(GameManager.Instance.playersList.Count());
+            
+        }
+        
     }
 }

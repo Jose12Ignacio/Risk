@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: d140362ea9b7fb442b055d59a08c4aa5
+guid: 34941ae7f14821a429a5f549ca14e39c
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -2480472773370818947
-    second: Mundo_0
+      213: -1412945729244362386
+    second: mapa_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -46,11 +46,11 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
-  spriteMeshType: 0
-  alignment: 9
-  spritePivot: {x: 0.48449612, y: 0.54312897}
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
@@ -100,23 +100,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Mundo_0
+      name: mapa_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 306
-        height: 165
+        width: 4875
+        height: 2161
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: d7e443c9727939dd0800000000000000
-      internalID: -2480472773370818947
+      spriteID: e690c796855346ce0800000000000000
+      internalID: -1412945729244362386
       vertices: []
       indices: 
       edges: []
@@ -125,8 +125,8 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e97eb03825dee720800000000000000
-    internalID: 1537655665
+    spriteID: 
+    internalID: 0
     vertices: []
     indices: 
     edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Mundo_0: -2480472773370818947
+      mapa_0: -1412945729244362386
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

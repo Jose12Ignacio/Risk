@@ -27,7 +27,9 @@ public class Client
         {
             await client.ConnectAsync(ip, port); //Intenta y espera conectarse a la dirección dada
             stream = client.GetStream(); //Establece el canal de comunicación
-            Debug.Log("Conectado al servidor");
+            
+            byte[] nameBytes = Encoding.UTF8.GetBytes(playerName);
+            await stream.WriteAsync(nameBytes, 0, nameBytes.Length);
 
             OnConnected?.Invoke();
 
@@ -62,22 +64,37 @@ public class Client
     }
 
     // Recibir mensajes del servidor
-    private async Task ReceiveMessages() //Recibe los mensajes que el servidor envia
+    private async Task ReceiveMessages()
     {
         byte[] buffer = new byte[1024];
         try
         {
             while (client.Connected)
             {
-                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length); //Espera a recibir información
-                if (bytesRead == 0) break; //Si es cero es server terminó, sale del bucle
+                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                if (bytesRead == 0) break;
 
-                string json = Encoding.UTF8.GetString(buffer, 0, bytesRead); //Convertir de bytes a Json y a TurnInfo
+                string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
 
-                GameManager.Instance.ManageMessages(receivedAction);
+                // Guardar color propio si el mensaje contiene info de jugadores
+                if (receivedAction.startGame && receivedAction.playersList != null)
+                {
+                    var current = receivedAction.playersList.head;
+                    while (current != null)
+                    {
+                        if (current.data.username == playerName)
+                        {
+                            User_info.color = current.color;
+                            Debug.Log($"Mi color asignado: {User_info.color}");
+                            break;
+                        }
+                        current = current.next;
+                    }
+                }
 
-                Debug.Log($"Mensaje recibido");
+                GameManager.Instance.ManageMessages(receivedAction);
+                Debug.Log("Mensaje recibido");
             }
         }
         catch (Exception ex)
@@ -90,5 +107,5 @@ public class Client
             SceneManager.LoadScene("Login");
             Debug.Log("Conexión cerrada");
         }
-    }
+    }
 }

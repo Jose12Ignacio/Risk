@@ -11,7 +11,7 @@ public class GameManager : MonoBehaviour
     public ClientManager clientManager;
     public ServerManager serverManager;
 
-    public LinkedList<TcpClient> playersList;
+    public LinkedList<PlayerInfo> playersList;
     private int? pendingPlayersUpdate;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -34,33 +34,14 @@ public class GameManager : MonoBehaviour
         serverManager = serverManager ?? GetComponent<ServerManager>() ?? gameObject.AddComponent<ServerManager>();
         clientManager = clientManager ?? GetComponent<ClientManager>() ?? gameObject.AddComponent<ClientManager>();
 
-        SceneManager.sceneLoaded += OnSceneLoaded;
         Debug.Log("[GM] GameManager listo (DontDestroyOnLoad).");
-    }
-
-    void OnDestroy()
-    {
-        if (Instance == this) SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
-
-    private void OnSceneLoaded(Scene s, LoadSceneMode m)
-    {
-        if (s.name == "GameRoom" && pendingPlayersUpdate.HasValue)
-        {
-            if (GameRoomManager.Instance != null)
-                GameRoomManager.Instance.UpdatePlayers(1, serverManager.ip);
-            pendingPlayersUpdate = null;
-        }
     }
 
     public void StartGame(TurnInfo message) // Iniciar el juego cuando se recibe el mensaje de inicio
     {
-        if (serverManager.server.clients.Count() >= 2)
-        {
-            playersList = message.playersList;
-            SceneManager.LoadScene("Game");
-            playersList?.nextPlayer();
-        }
+        playersList = message.playersList;
+        SceneManager.LoadScene("Game");
+        playersList?.nextPlayer();
         
     }
 
@@ -70,13 +51,6 @@ public class GameManager : MonoBehaviour
         {
             StartGame(turnInfo);
         }
-        else if (turnInfo.numPlayers > 0)
-        {
-            if (GameRoomManager.Instance != null)
-                GameRoomManager.Instance.UpdatePlayers(turnInfo.numPlayers, turnInfo.ipCode);
-            else
-                pendingPlayersUpdate = turnInfo.numPlayers;
-        }
         else
         {
             updateGame(turnInfo);
@@ -85,8 +59,6 @@ public class GameManager : MonoBehaviour
 
     public void updateGame(TurnInfo turnInfo) //Aca se actualizan las variables propias del jugador
     {
-
-
         playersList?.nextPlayer();
     }
 }

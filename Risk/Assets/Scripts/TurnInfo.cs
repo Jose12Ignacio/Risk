@@ -17,5 +17,5 @@ public class TurnInfo //La finalidad de la clase es crear una base para la infor
     public string ipCode;
     public bool gameRoom = false;
 
-    public LinkedList<TcpClient> playersList;
+    public LinkedList<PlayerInfo> playersList;
 }

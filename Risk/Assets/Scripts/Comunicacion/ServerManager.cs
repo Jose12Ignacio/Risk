@@ -25,28 +25,14 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
         ip = GetLocalIPAddress();
         if (System.Net.IPAddress.TryParse(ip, out _))
         {
-            Debug.Log("Entro");
-            // Iniciar servidor
             server = new Server();
             _ = server.StartServer(port);
-            Debug.Log("Servidor iniciado");
-
 
             await Task.Delay(500);
-
-            TcpClient hostClient = new TcpClient();
-
-            await hostClient.ConnectAsync(ip, port);  // Se conecta a su propio servidor
-
-            server.clients.Add(hostClient);
-
-            _ = server.HandleClient(hostClient);
 
             // Crear cliente host
             localPlayer = new Client(playerName);
             await localPlayer.Connect(ip, port);
-            
-
 
             Debug.Log("Cliente local conectado al servidor");
 

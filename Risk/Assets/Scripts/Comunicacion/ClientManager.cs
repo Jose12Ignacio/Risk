@@ -25,7 +25,7 @@ public class ClientManager : MonoBehaviour
         localPlayer.OnConnected += () =>
         {
             // Cambiar de escena solo si se conectó
-            SceneManager.LoadScene("Game_room");
+            SceneManager.LoadScene("GameRoom");
         };
 
         localPlayer.OnConnectionError += (msg) =>

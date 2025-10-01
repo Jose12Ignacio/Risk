@@ -1,29 +1,113 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
+using System.Collections;
+using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
 
 public class Login_manager : MonoBehaviour
 {
-    public TMP_InputField username;
-    public TMP_InputField ip;
+    public TMP_InputField inputUsername;
+    public TMP_InputField inputIp;
+    public Color errorColor = Color.red;
+    private Color defaultColor;
+    public AudioSource audioSource;
+    public AudioClip errorSound;
 
-
-    public void SetPlayerData()
+    void Start()
     {
+        defaultColor = inputUsername.image != null ? inputUsername.image.color : Color.white;
+    }
 
-        if (string.IsNullOrWhiteSpace(username.text))
+    public void OnClickSetClient()
+    {
+        _ = SetPlayerDataClientAsync();
+    }
+
+    private async Task SetPlayerDataClientAsync()
+    {
+        await Task.Yield();
+
+        var nombre = inputUsername.text?.Trim();
+        if (string.IsNullOrEmpty(nombre))
         {
-            Debug.Log("Ip o nombre invalido");
+            ShowInputError(inputUsername);
+            return;
+        }
+
+        User_info.username = nombre;
+        User_info.ip       = inputIp.text;
+        User_info.manager  = false;
+
+        if (GameManager.Instance != null && GameManager.Instance.clientManager != null)
+        {
+            // Conectar y luego ir a GameRoom
+            GameManager.Instance.clientManager.ConnectToServer();
+            // Si tu clientManager expone un callback OnConnected, muévete allí.
+            // Como atajo: carga la sala tras un pequeño yield.
+            await Task.Delay(100); 
+            SceneManager.LoadScene("GameRoom");
         }
         else
         {
-            User_info.username = username.text;
-            User_info.ip = ip.text;
-            Debug.Log(User_info.username);
-            Debug.Log(User_info.ip);
-            Debug.Log("Informacion seteada");
-
-            SceneManager.LoadScene("Game_room");
+            Debug.LogError("GameManager.Instance o clientManager es null.");
+            ShowInputError(inputUsername);
         }
+    }
+
+    public void OnClickSetServer()
+    {
+        _ = SetPlayerDataServerAsync();
+
+    }
+
+    private async Task SetPlayerDataServerAsync()
+    {
+        await Task.Yield();
+
+        var nombre = inputUsername.text?.Trim();
+        if (string.IsNullOrEmpty(nombre))
+        {
+            ShowInputError(inputUsername);
+            return;
+
+        }
+
+        User_info.username = nombre;
+        User_info.ip       = inputIp.text;
+        User_info.manager  = true;
+
+        
+        if (GameManager.Instance != null && GameManager.Instance.serverManager != null)
+        {
+            Debug.Log("[Login] Iniciando servidor y jugador local...");
+            GameManager.Instance.serverManager.StartServerAndLocalPlayer();
+            // Cuando el server esté listo, pasa a la sala
+            await Task.Delay(100);
+            SceneManager.LoadScene("GameRoom");
+        }
+        else
+        {
+            Debug.LogError("GameManager.Instance o serverManager es null.");
+            ShowInputError(inputUsername);
+        }
+    }
+
+    public void ShowInputError(TMP_InputField field)
+    {
+        StartCoroutine(InputErrorCoroutine(field));
+    }
+
+    private IEnumerator InputErrorCoroutine(TMP_InputField field)
+    {
+        var bg = field.image;
+        var original = bg != null ? bg.color : Color.white;
+
+        if (bg != null) bg.color = errorColor;
+        if (audioSource != null && errorSound != null)
+            audioSource.PlayOneShot(errorSound);
+
+        yield return new WaitForSeconds(2);
+        if (bg != null) bg.color = original;
     }
 }

@@ -31,7 +31,6 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
             _ = server.StartServer(port);
             Debug.Log("Servidor iniciado");
 
-            Node hostNode = new Node();
 
             await Task.Delay(500);
 
@@ -39,9 +38,7 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
 
             await hostClient.ConnectAsync(ip, port);  // Se conecta a su propio servidor
 
-            hostNode.client = hostClient;
-
-            server.clients.addLast(hostNode);
+            server.clients.Add(hostClient);
 
             _ = server.HandleClient(hostClient);
 

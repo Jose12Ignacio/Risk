@@ -1,5 +1,7 @@
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Net.Sockets;
 
 [DefaultExecutionOrder(-1000)]
 public class GameManager : MonoBehaviour
@@ -9,7 +11,7 @@ public class GameManager : MonoBehaviour
     public ClientManager clientManager;
     public ServerManager serverManager;
 
-    public ListNode playersList;
+    public LinkedList<TcpClient> playersList;
     private int? pendingPlayersUpdate;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -46,22 +48,23 @@ public class GameManager : MonoBehaviour
         if (s.name == "GameRoom" && pendingPlayersUpdate.HasValue)
         {
             if (GameRoomManager.Instance != null)
-                GameRoomManager.Instance.UpdatePlayers(pendingPlayersUpdate.Value);
+                GameRoomManager.Instance.UpdatePlayers(1, serverManager.ip);
             pendingPlayersUpdate = null;
         }
     }
 
     public void StartGame(TurnInfo message)
     {
-        if (serverManager != null && serverManager.server != null)
-            playersList = serverManager.server.clients;
-        else
-            Debug.LogWarning("[GM] StartGame: serverManager o server nulo; se omite playersList.");
-
-        Debug.Log("[GM] Juego iniciado para todos los jugadores.");
-        SceneManager.LoadScene("Game");
-
-        playersList?.NextPlayer();
+        if (serverManager.server.clients.Count() >= 2)
+        {
+            playersList = serverManager.server.clients; //Lista de los jugadores que van a jugar.
+            playersList.head.color = "red";
+            playersList.head.next.color = "blue";
+            if (playersList.head.next.next != null) playersList.head.next.next.color = "gray";
+            SceneManager.LoadScene("Game");
+            playersList?.nextPlayer();
+        }
+        
     }
 
     public void ManageMessages(TurnInfo turnInfo)
@@ -69,18 +72,25 @@ public class GameManager : MonoBehaviour
         if (turnInfo.startGame)
         {
             StartGame(turnInfo);
-            return;
         }
-
-        if (turnInfo.numPlayers > 0)
+        else if (turnInfo.numPlayers > 0)
         {
             if (GameRoomManager.Instance != null)
-                GameRoomManager.Instance.UpdatePlayers(turnInfo.numPlayers);
+                GameRoomManager.Instance.UpdatePlayers(turnInfo.numPlayers, turnInfo.ipCode);
             else
                 pendingPlayersUpdate = turnInfo.numPlayers;
-
         }
-        Debug.Log("manageMesagges");
+        else
+        {
+            updateGame(turnInfo);
+        }
+    }
+
+    public void updateGame(TurnInfo turnInfo) //Aca se actualizan las variables propias del jugador
+    {
+
+
+        playersList?.nextPlayer();
     }
 }
 

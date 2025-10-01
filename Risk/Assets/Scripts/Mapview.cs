@@ -1,7 +1,6 @@
 using UnityEngine;
-using System.Collections.Generic;
-using CrazyRisk;       // Enums
-using CrazyRisk.Core; // Mapa, Territorio
+using CrazyRisk;       // TerritorioId, Continente
+using CrazyRisk.Core;  // Mapa, Territorio
 
 public class MapView : MonoBehaviour
 {
@@ -9,69 +8,102 @@ public class MapView : MonoBehaviour
     public Material lineMaterial;
     public float nodeScale = 1f;
 
-    // posiciones para los territorios ya definidos en Mapa.CrearMapaBase()
-    Dictionary<TerritorioId, Vector2> pos = new()
+    // Arrays paralelos para posiciones
+    TerritorioId[] posKeys = new TerritorioId[]
     {
-        { TerritorioId.Alaska,      new Vector2(-8f, 3f) },
-        { TerritorioId.NWTerritory, new Vector2(-6f, 3.2f) },
-        { TerritorioId.Alberta,     new Vector2(-6f, 1.8f) },
-        { TerritorioId.Ontario,     new Vector2(-4f, 2.1f) },
-        { TerritorioId.OesteEEUU,   new Vector2(-5f, 0.6f) },
-        { TerritorioId.Kamchatka,   new Vector2( 6f, 3.5f) },
+        TerritorioId.Alaska,
+        TerritorioId.NWTerritory,
+        TerritorioId.Alberta,
+        TerritorioId.Ontario,
+        TerritorioId.OesteEEUU,
+        TerritorioId.Kamchatka
+    };
+
+    Vector2[] posValues = new Vector2[]
+    {
+        new Vector2(-8f, 3f),
+        new Vector2(-6f, 3.2f),
+        new Vector2(-6f, 1.8f),
+        new Vector2(-4f, 2.1f),
+        new Vector2(-5f, 0.6f),
+        new Vector2( 6f, 3.5f)
     };
 
     Mapa mapa;
-    readonly Dictionary<TerritorioId, TerritoryNode> nodes = new();
+
+    // Arrays paralelos para nodos instanciados
+    TerritorioId[] nodeKeys;
+    TerritoryNode[] nodeValues;
+    int nodeCount = 0;
 
     void Start()
     {
-        mapa = Mapa.CrearMapaBase(); // crea grafo con vecinos:contentReference[oaicite:2]{index=2}
+        mapa = Mapa.CrearMapaBase(); // crea grafo con territorios y vecinos propios
 
-        // instanciar nodos
-        foreach (var kv in mapa.Territorios)
+        // Inicializa arrays con tamaño fijo igual al número de territorios
+        int totalTerritorios = mapa.GetAllTerritorios().Length;
+        nodeKeys = new TerritorioId[totalTerritorios];
+        nodeValues = new TerritoryNode[totalTerritorios];
+
+        // Instanciar nodos
+        var territorios = mapa.GetAllTerritorios();
+        for (int i = 0; i < territorios.Length; i++)
         {
-            var id = kv.Key;
-            if (!pos.ContainsKey(id)) continue;
+            var territorio = territorios[i];
+            var id = territorio.Id;
 
-            var node = Instantiate(territoryPrefab, pos[id], Quaternion.identity, transform);
+            Vector2? pos = GetPos(id);
+            if (pos == null) continue;
+
+            var node = Instantiate(territoryPrefab, pos.Value, Quaternion.identity, transform);
             node.transform.localScale = Vector3.one * nodeScale;
             node.id = id;
             node.spriteRenderer.color = new Color(0.2f, 0.6f, 1f, 0.5f);
-            node.SetText(kv.Value.Nombre + "\n" + kv.Value.Tropas); // Nombre/Tropas:contentReference[oaicite:3]{index=3}
+            node.SetText(territorio.Nombre + "\n" + territorio.Tropas);
             node.OnClicked += HandleClicked;
-            nodes[id] = node;
+
+            nodeKeys[nodeCount] = id;
+            nodeValues[nodeCount] = node;
+            nodeCount++;
         }
 
-        // dibujar aristas (evitar duplicados)
-        foreach (var kv in mapa.Territorios)
+        // Dibujar aristas
+        for (int i = 0; i < territorios.Length; i++)
         {
-            var a = kv.Key;
-            if (!nodes.ContainsKey(a)) continue;
-            var ta = kv.Value;
+            var a = territorios[i];
+            var aNode = GetNode(a.Id);
+            if (aNode == null) continue;
 
-            for (int i = 0; i < ta.Vecinos.Count; i++)
+            for (int j = 0; j < a.Vecinos.Count(); j++)
             {
-                var b = ta.Vecinos[i];
-                if (!nodes.ContainsKey(b)) continue;
-                if ((int)a < (int)b) DrawEdge(nodes[a].transform.position, nodes[b].transform.position);
+                var bId = a.Vecinos.Get(j);
+                var bNode = GetNode(bId);
+                if (bNode != null && (int)a.Id < (int)bId)
+                {
+                    DrawEdge(aNode.transform.position, bNode.transform.position);
+                }
             }
         }
     }
 
     void HandleClicked(TerritorioId id)
     {
-        foreach (var n in nodes.Values) n.SetHighlighted(false);
+        // Desmarcar todos los nodos
+        for (int i = 0; i < nodeCount; i++)
+            nodeValues[i].SetHighlighted(false);
 
-        if (!nodes.ContainsKey(id)) return;
-        nodes[id].SetHighlighted(true);
+        var node = GetNode(id);
+        if (node == null) return;
 
-        var t = mapa.Get(id); // busca territorio por Id:contentReference[oaicite:4]{index=4}
-        for (int i = 0; i < t.Vecinos.Count; i++)
+        node.SetHighlighted(true);
+
+        var t = mapa.Get(id);
+        for (int i = 0; i < t.Vecinos.Count(); i++)
         {
-            var v = t.Vecinos[i];
-            if (nodes.ContainsKey(v)) nodes[v].SetHighlighted(true);
+            var vId = t.Vecinos.Get(i);
+            var vNode = GetNode(vId);
+            if (vNode != null) vNode.SetHighlighted(true);
         }
-        Debug.Log($"Clicked: {id} — vecinos: {string.Join(", ", t.Vecinos)}");
     }
 
     void DrawEdge(Vector3 a, Vector3 b)
@@ -86,5 +118,19 @@ public class MapView : MonoBehaviour
         lr.numCapVertices = 4;
         lr.useWorldSpace = true;
     }
-}
 
+    // 🔹 Helpers
+    Vector2? GetPos(TerritorioId id)
+    {
+        for (int i = 0; i < posKeys.Length; i++)
+            if (posKeys[i] == id) return posValues[i];
+        return null;
+    }
+
+    TerritoryNode GetNode(TerritorioId id)
+    {
+        for (int i = 0; i < nodeCount; i++)
+            if (nodeKeys[i] == id) return nodeValues[i];
+        return null;
+    }
+}

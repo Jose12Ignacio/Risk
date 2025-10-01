@@ -10,7 +10,7 @@ using UnityEngine;
 public class Server
 {
     private TcpListener listener;
-    public ListNode clients = new ListNode();
+    public LinkedList<TcpClient> clients = new LinkedList<TcpClient>();
     private bool isRunning = false;
     private CancellationTokenSource cts;
 
@@ -57,11 +57,7 @@ public class Server
                 TcpClient client = await listener.AcceptTcpClientAsync().ConfigureAwait(false);
 
                 // Agregar a la lista correctamente
-                var node = new Node { client = client };
-                if (clients.head == null)
-                    clients.head = node;
-                else
-                    clients.addLast(node);
+                clients.Add(client);
 
                 Debug.Log($"Cliente conectado. Total: {clients.Count()}");
 
@@ -108,7 +104,7 @@ public class Server
         }
         finally
         {
-            clients.remove(client);
+            clients.Remove(client);
             try { client.Close(); } catch { }
             Debug.Log($"Cliente desconectado. Total: {clients.Count()}");
         }
@@ -120,45 +116,38 @@ public class Server
         string json = JsonUtility.ToJson(action);
         byte[] data = System.Text.Encoding.UTF8.GetBytes(json);
 
-        Node curr = clients.head;
-        while (curr != null)
+        for (int i = 0; i < clients.Count(); i++)
+    {
+        TcpClient c = clients.Get(i);
+        if (c == null || c == sender || !c.Connected) continue;
+
+        try
         {
-            var c = curr.client;
-            curr = curr.next;
-
-            if (c == null || c == sender || !c.Connected) continue;
-
-            try
-            {
-                NetworkStream s = c.GetStream();
-                await s.WriteAsync(data, 0, data.Length);
-            }
-            catch
-            {
-                // ignorar clientes caídos; los limpiará HandleClient/StopServer
-            }
+            NetworkStream s = c.GetStream();
+            await s.WriteAsync(data, 0, data.Length);
         }
+        catch
+        {
+            // ignorar clientes caídos; los limpiará HandleClient/StopServer
+        }
+    }
     }
 
 
     public void StopServer()
+{
+    if (!isRunning) return;
+
+    isRunning = false;
+    try { cts?.Cancel(); } catch { }
+    try { listener?.Stop(); } catch { }
+
+    // cerrar clientes
+    for (int i = 0; i < clients.Count(); i++)
     {
-        if (!isRunning) return;
-
-        isRunning = false;
-        try { cts?.Cancel(); } catch { }
-
-        try { listener?.Stop(); } catch { }
-
-        // Cerrar clientes
-        Node curr = clients.head;
-        while (curr != null)
-        {
-            try { curr.client?.Close(); } catch { }
-            curr = curr.next;
-        }
-        clients.clear();
-
-        Debug.Log("Servidor cerrado.");
+        try { clients.Get(i)?.Close(); } catch { }
     }
+
+    Debug.Log("Servidor cerrado.");
+}
 }

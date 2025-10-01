@@ -1,6 +1,5 @@
 ﻿#nullable enable
 using System;
-using System.Collections.Generic;
 
 namespace CrazyRisk.Core
 {
@@ -11,7 +10,9 @@ namespace CrazyRisk.Core
         public Continente Continente { get; }
         public Ejercito? Duenio { get; private set; }
         public int Tropas { get; private set; }
-        public List<TerritorioId> Vecinos { get; } = new List<TerritorioId>();
+
+        // Ahora usamos nuestra lista enlazada genérica para los vecinos
+        public LinkedList<TerritorioId> Vecinos { get; } = new LinkedList<TerritorioId>();
 
         public Territorio(TerritorioId id, string nombre, Continente continente)
         {
@@ -27,7 +28,6 @@ namespace CrazyRisk.Core
         {
             if (cantidad <= 0)
                 throw new InvalidOperationException("La cantidad de tropas a agregar debe ser positiva.");
-
             Tropas += cantidad;
         }
 
@@ -35,7 +35,6 @@ namespace CrazyRisk.Core
         {
             if (cantidad <= 0 || cantidad > Tropas)
                 throw new InvalidOperationException("Cantidad de tropas inválida.");
-
             Tropas -= cantidad;
         }
 
@@ -46,4 +45,3 @@ namespace CrazyRisk.Core
         }
     }
 }
-

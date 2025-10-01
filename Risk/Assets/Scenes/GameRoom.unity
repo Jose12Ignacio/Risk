@@ -507,7 +507,7 @@ GameObject:
   - component: {fileID: 459297926}
   - component: {fileID: 459297925}
   m_Layer: 0
-  m_Name: Text (TMP)  ipCode
+  m_Name: ipCode
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -643,7 +643,7 @@ GameObject:
   - component: {fileID: 532097992}
   - component: {fileID: 532097991}
   m_Layer: 0
-  m_Name: Text (TMP)  playersNumber
+  m_Name: playersNumber
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -796,7 +796,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31c5411190cb7f6428780dc8fcd89bc2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRoomManager
-  numPlayers: 1
 --- !u!4 &648543065
 Transform:
   m_ObjectHideFlags: 0

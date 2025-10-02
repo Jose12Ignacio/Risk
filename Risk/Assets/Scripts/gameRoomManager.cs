@@ -77,10 +77,13 @@ public class GameRoomManager : MonoBehaviour
 
     void Update()
     {
-        if (SceneManager.GetActiveScene().name == "GameRoom") {
-            if (ipCode != null && GameManager.Instance.serverManager != null) {
-            ipCode.text = $"Ip: {GameManager.Instance.serverManager.ip}";
-        }
+        if (SceneManager.GetActiveScene().name == "GameRoom")
+        {
+            if (ipCode != null && GameManager.Instance.serverManager != null)
+            {
+                ipCode.text = $"Ip: {GameManager.Instance.serverManager.ip}";
+                Debug.Log(GameManager.Instance.serverManager.server.clients.Count());
+            }
         }
         
         

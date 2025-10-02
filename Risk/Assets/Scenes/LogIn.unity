@@ -755,10 +755,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31c5411190cb7f6428780dc8fcd89bc2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRoomManager
-  startGameButton: {fileID: 0}
-  playersNumber: {fileID: 0}
-  numPlayers: 1
-  prevNumPlayers: 0
 --- !u!4 &359023856
 Transform:
   m_ObjectHideFlags: 0
@@ -1551,19 +1547,7 @@ MonoBehaviour:
   m_CharacterLimit: 0
   m_OnEndEdit:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 11500000, guid: 9b8964696ecbca7139b9c3f1b6e8e1f5, type: 3}
-        m_TargetAssemblyTypeName: UnityEditor.MonoScript, UnityEditor.CoreModule
-        m_MethodName: 
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   m_OnSubmit:
     m_PersistentCalls:
       m_Calls: []
@@ -1862,6 +1846,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
+      - m_Target: {fileID: 1417328824}
+        m_TargetAssemblyTypeName: Login_manager, Assembly-CSharp
+        m_MethodName: OnClickSetClient
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 1417328824}
         m_TargetAssemblyTypeName: Login_manager, Assembly-CSharp
         m_MethodName: OnClickSetServer

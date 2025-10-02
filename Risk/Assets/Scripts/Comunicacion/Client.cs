@@ -27,9 +27,14 @@ public class Client
         {
             await client.ConnectAsync(ip, port); //Intenta y espera conectarse a la dirección dada
             stream = client.GetStream(); //Establece el canal de comunicación
+            await Task.Delay(100);
+            Debug.Log("Conectado");
+            Debug.Log(playerName);
             
             byte[] nameBytes = Encoding.UTF8.GetBytes(playerName);
             await stream.WriteAsync(nameBytes, 0, nameBytes.Length);
+
+            Debug.Log("Enviado");
 
             OnConnected?.Invoke();
 

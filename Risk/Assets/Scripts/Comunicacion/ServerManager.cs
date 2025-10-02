@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 public class ServerManager : MonoBehaviour //Creamos esta clase porque el script de server no está integrado en Unity, es C# puro
 {
-    public string playerName = User_info.username;
+    public string playerName;
     public TextMeshProUGUI playersNumber;
     public string ip;
     public static int port = 5000;
@@ -28,15 +28,12 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
             server = new Server();
             _ = server.StartServer(port);
 
-            await Task.Delay(500);
+            playerName = User_info.username;
 
-            // Crear cliente host
             localPlayer = new Client(playerName);
             await localPlayer.Connect(ip, port);
 
             Debug.Log("Cliente local conectado al servidor");
-
-            SceneManager.LoadScene("GameRoom");
         }
     }
 

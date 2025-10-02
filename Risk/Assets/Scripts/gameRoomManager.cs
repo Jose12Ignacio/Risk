@@ -77,7 +77,7 @@ public class GameRoomManager : MonoBehaviour
 
     void Update()
     {
-        if (SceneManager.GetActiveScene().name == "GameRoom")
+        if (SceneManager.GetActiveScene().name == "GameRoom" && User_info.manager == true)
         {
             if (ipCode != null && GameManager.Instance.serverManager != null)
             {

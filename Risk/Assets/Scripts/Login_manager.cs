@@ -43,7 +43,7 @@ public class Login_manager : MonoBehaviour
 
         if (GameManager.Instance != null && GameManager.Instance.clientManager != null)
         {
-            GameManager.Instance.clientManager.ConnectToServer();
+            GameManager.Instance.clientManager.ConnectToServer(nombre, inputIp.text);
         }
         else
         {

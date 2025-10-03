@@ -29,6 +29,7 @@ public class Login_manager : MonoBehaviour
         await Task.Yield();
 
         var nombre = inputUsername.text?.Trim();
+
         if (string.IsNullOrEmpty(nombre))
         {
             ShowInputError(inputUsername);
@@ -38,15 +39,11 @@ public class Login_manager : MonoBehaviour
         User_info.username = nombre;
         User_info.ip       = inputIp.text;
         User_info.manager  = false;
+        
 
         if (GameManager.Instance != null && GameManager.Instance.clientManager != null)
         {
-            // Conectar y luego ir a GameRoom
-            GameManager.Instance.clientManager.ConnectToServer();
-            // Si tu clientManager expone un callback OnConnected, muévete allí.
-            // Como atajo: carga la sala tras un pequeño yield.
-            await Task.Delay(100); 
-            SceneManager.LoadScene("GameRoom");
+            GameManager.Instance.clientManager.ConnectToServer(nombre, inputIp.text);
         }
         else
         {
@@ -58,7 +55,6 @@ public class Login_manager : MonoBehaviour
     public void OnClickSetServer()
     {
         _ = SetPlayerDataServerAsync();
-
     }
 
     private async Task SetPlayerDataServerAsync()
@@ -70,17 +66,14 @@ public class Login_manager : MonoBehaviour
         {
             ShowInputError(inputUsername);
             return;
-
         }
 
         User_info.username = nombre;
         User_info.ip       = inputIp.text;
         User_info.manager  = true;
-
         
         if (GameManager.Instance != null && GameManager.Instance.serverManager != null)
         {
-            Debug.Log("[Login] Iniciando servidor y jugador local...");
             GameManager.Instance.serverManager.StartServerAndLocalPlayer();
             // Cuando el server esté listo, pasa a la sala
             await Task.Delay(100);

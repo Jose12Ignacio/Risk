@@ -8,7 +8,6 @@ public class GameRoomManager : MonoBehaviour
 {
     public static GameRoomManager Instance;
     private Button startGameButton;
-    private TextMeshProUGUI playersNumber;
     private TextMeshProUGUI ipCode;
 
 
@@ -43,29 +42,50 @@ public class GameRoomManager : MonoBehaviour
         if (scene.name != "GameRoom") return;
 
         var btnGO = GameObject.Find("startGame");
-        var txtGO = GameObject.Find("playersNumber");
-        var txtGO2 = GameObject.Find("ipCode");
+        var txtGO = GameObject.Find("ipCode");
 
         startGameButton = btnGO ? btnGO.GetComponent<Button>() : null;
-        playersNumber = txtGO ? txtGO.GetComponent<TextMeshProUGUI>() : null;
-        ipCode = txtGO2 ? txtGO.GetComponent<TextMeshProUGUI>() : null;
+        ipCode = txtGO ? txtGO.GetComponent<TextMeshProUGUI>() : null;
 
         if (startGameButton != null)
         {
             startGameButton.onClick.RemoveAllListeners();
-            startGameButton.onClick.AddListener(() =>
-            {
-                Debug.Log("[GRM] StartGame clicado.");
-                GameManager.Instance.ManageMessages(new TurnInfo { startGame = true });
-            });
+            startGameButton.onClick.AddListener(sendStartMessage);
         }
-        UpdatePlayers(1, GameManager.Instance.serverManager.ip);
     }
 
-    public void UpdatePlayers(int n, string ip)
+
+    public void sendStartMessage()//Va a enviar una el mensaje de incio y pasa a la nueva escena
     {
-        if (playersNumber != null)
-            playersNumber.text = $"Jugadores conectados: {n}";
-        ipCode.text = $"Ip: {ip}";
+        if (User_info.manager == true && GameManager.Instance.serverManager.server.clients.Count() >= 2)
+        {
+            TurnInfo message = new TurnInfo();
+            message.startGame = true;
+            GameManager.Instance.playersList = GameManager.Instance.serverManager.server.clients;
+            GameManager.Instance.playersList.head.data.color = "red";
+            GameManager.Instance.playersList.head.next.data.color = "blue";
+            if (GameManager.Instance.playersList.head.next.next != null) GameManager.Instance.playersList.head.next.next.data.color = "gray";
+            message.playersList = GameManager.Instance.playersList;
+            GameManager.Instance.playersList.nextPlayer();
+            SceneManager.LoadScene("Game");
+            GameManager.Instance.clientManager.SendMove(message);
+            Debug.Log(GameManager.Instance.playersList.Count());
+
+        }
+
+    }
+
+    void Update()
+    {
+        if (SceneManager.GetActiveScene().name == "GameRoom" && User_info.manager == true)
+        {
+            if (ipCode != null && GameManager.Instance.serverManager != null)
+            {
+                ipCode.text = $"Ip: {GameManager.Instance.serverManager.ip}";
+                Debug.Log(GameManager.Instance.serverManager.server.clients.Count());
+            }
+        }
+        
+        
     }
 }

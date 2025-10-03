@@ -5,37 +5,32 @@ public class ClientManager : MonoBehaviour
 {
     private Client localPlayer;
     public Login_manager loginManager;
-    public TMP_InputField inputUsername;
-    public TMP_InputField inputIp;
 
-    public async void ConnectToServer() //Crear un cliente a parte de la clase, este será el jugador local
+    void Awake()
     {
-        string username = inputUsername.text;
-        string ip = inputIp.text;
+        DontDestroyOnLoad(gameObject);
+    }
 
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(ip))
-        {
-            loginManager.ShowInputError(inputIp); // Mostrar error visual si está vacío
-            return;
-        }
-
+    public async void ConnectToServer(string username, string inputIp)
+    {
+        
+        // Crear el cliente con el username
         localPlayer = new Client(username);
 
-        // Suscribirse a eventos
+        // Suscribirse a eventos ANTES de intentar conectar
         localPlayer.OnConnected += () =>
         {
-            // Cambiar de escena solo si se conectó
-            SceneManager.LoadScene("Game_room");
+            Debug.Log("Conexión exitosa, cambiando a GameRoom...");
+            SceneManager.LoadScene("GameRoom");
         };
 
         localPlayer.OnConnectionError += (msg) =>
         {
             Debug.LogError("Error al conectar: " + msg);
-            loginManager.ShowInputError(inputIp); // Mostrar error visual
         };
 
         // Intentar conectarse
-        await localPlayer.Connect(ip, 5000);
+        await localPlayer.Connect(inputIp, 5000);
     }
 
     public async void SendMove(TurnInfo action) //Enviar información del movimiento hecho

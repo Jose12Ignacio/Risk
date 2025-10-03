@@ -8,13 +8,11 @@ public class LinkedList<T>
     {
         public T data;
         public Node? next;
-        public string color;
 
         public Node(T data)
         {
             this.data = data;
             next = null;
-            color = "";
         }
     }
 
@@ -41,7 +39,6 @@ public class LinkedList<T>
 
     public int Count() => count;
 
-    // ✅ Método Get por índice
     public T Get(int index)
     {
         if (index < 0 || index >= count)

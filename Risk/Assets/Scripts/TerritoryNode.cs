@@ -1,27 +1,55 @@
 using UnityEngine;
-using System;
 using TMPro;
 
-public class TerritoryNode : MonoBehaviour
+namespace CrazyRisk
 {
-    public CrazyRisk.TerritorioId id;
-    public SpriteRenderer spriteRenderer;
-    public TextMeshPro textLabel;
-
-    public event Action<CrazyRisk.TerritorioId> OnClicked;
-
-    void OnMouseDown() => OnClicked?.Invoke(id);
-
-    public void SetHighlighted(bool on)
+    public class TerritoryNode : MonoBehaviour
     {
-        if (!spriteRenderer) return;
-        var c = spriteRenderer.color;
-        spriteRenderer.color = on ? new Color(c.r, c.g, c.b, 1f)
-                                  : new Color(c.r, c.g, c.b, 0.5f);
-    }
+        [Header("Datos")]
+        public TerritorioId id;         
+        public string Nombre;           
+        public int Tropas;              
 
-    public void SetText(string t)
-    {
-        if (textLabel) textLabel.text = t;
+        [Header("Refs UI")]
+        public TMP_Text labelNombre;
+        public TMP_Text labelTropas;
+        public SpriteRenderer highlightCircle; 
+
+        // Evento de click
+        public event System.Action<TerritorioId> OnClicked;
+
+        void OnMouseDown()
+        {
+            if (OnClicked != null)
+                OnClicked(id);
+        }
+
+        // Inicializar datos
+        public void SetData(string nombre, int tropas)
+        {
+            Nombre = nombre;
+            Tropas = tropas;
+
+            if (labelNombre != null)
+                labelNombre.text = Nombre;
+
+            if (labelTropas != null)
+                labelTropas.text = Tropas.ToString();
+        }
+
+        // Actualizar tropas
+        public void UpdateTroops(int nuevasTropas)
+        {
+            Tropas = nuevasTropas;
+            if (labelTropas != null)
+                labelTropas.text = Tropas.ToString();
+        }
+
+        // Resaltado visual
+        public void SetHighlighted(bool activo)
+        {
+            if (highlightCircle != null)
+                highlightCircle.enabled = activo;
+        }
     }
 }

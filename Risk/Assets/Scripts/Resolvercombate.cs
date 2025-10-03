@@ -13,6 +13,9 @@ namespace CrazyRisk.Core
 
         public string AtacanteColor { get; set; }
         public string DefensorColor { get; set; }
+
+        // 🚀 NUEVO: tropas finales tras el combate
+        public int TropasAtacanteFinal { get; set; }
+        public int TropasDefensorFinal { get; set; }
     }
 }
-

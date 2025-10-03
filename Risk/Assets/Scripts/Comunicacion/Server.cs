@@ -10,11 +10,10 @@ using UnityEngine;
 public class Server
 {
     private TcpListener listener;
-    public ListNode clients = new ListNode();
+    public LinkedList<PlayerInfo> clients = new LinkedList<PlayerInfo>();
     private bool isRunning = false;
     private CancellationTokenSource cts;
 
-    
     public async Task StartServer(int port)
     {
         if (isRunning) return;
@@ -26,20 +25,18 @@ public class Server
             isRunning = true;
             cts = new CancellationTokenSource();
 
-            // Lanza el aceptador; no esperes aquí
             _ = AcceptLoopAsync(cts.Token);
 
-            await Task.CompletedTask; // explícito: método async “completado” tras iniciar
             Debug.Log($"Servidor escuchando en puerto {port}");
+            await Task.CompletedTask;
         }
         catch (SocketException se)
         {
             isRunning = false;
             Debug.LogError($"No se pudo iniciar el servidor en el puerto {port}: {se.Message}");
-            throw; // o maneja según tu flujo
+            throw;
         }
     }
-
 
     private async Task AcceptLoopAsync(CancellationToken token)
     {
@@ -47,7 +44,6 @@ public class Server
         {
             while (isRunning && !token.IsCancellationRequested)
             {
-                // Limite de jugadores (3) — ajusta a tu gusto
                 if (clients.Count() >= 3)
                 {
                     await Task.Delay(250, token);
@@ -56,21 +52,12 @@ public class Server
 
                 TcpClient client = await listener.AcceptTcpClientAsync().ConfigureAwait(false);
 
-                // Agregar a la lista correctamente
-                var node = new Node { client = client };
-                if (clients.head == null)
-                    clients.head = node;
-                else
-                    clients.addLast(node);
-
-                Debug.Log($"Cliente conectado. Total: {clients.Count()}");
-
-                _ = HandleClient(client); // atender cliente en segundo plano
+                _ = HandleClient(client); // no agregamos aún a la lista, lo hace HandleClient
             }
         }
         catch (ObjectDisposedException)
         {
-            // listener detenido — salir tranquilo
+            // listener detenido
         }
         catch (Exception ex)
         {
@@ -78,28 +65,36 @@ public class Server
         }
     }
 
-    
     public async Task HandleClient(TcpClient client)
     {
-        using NetworkStream stream = client.GetStream();
+        NetworkStream stream = client.GetStream();
         byte[] buffer = new byte[4096];
+
+        PlayerInfo player = null;
 
         try
         {
+            // Primer mensaje: username
+            int firstRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+            if (firstRead <= 0) return;
+
+            string username = System.Text.Encoding.UTF8.GetString(buffer, 0, firstRead).Trim();
+            player = new PlayerInfo(client, username);
+
+            clients.Add(player);
+            Debug.Log($"Jugador conectado: {username} | Total: {clients.Count()}");
+
             while (client.Connected)
             {
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                 if (bytesRead <= 0) break;
 
-
                 string json = System.Text.Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
 
+                Debug.Log($"Acción recibida de {player.username}: {receivedAction.actionType}");
 
-                // OJO: si TurnInfo no tiene playerName, usa otra propiedad
-                Debug.Log($"Acción: {receivedAction.actionType} | De: {receivedAction.fromTerritory} -> {receivedAction.toTerritory} | Tropas: {receivedAction.troops}");
-
-                await BroadcastMessage(receivedAction, client);
+                await BroadcastMessage(receivedAction, player);
             }
         }
         catch (Exception ex)
@@ -108,38 +103,37 @@ public class Server
         }
         finally
         {
-            clients.remove(client);
+            if (player != null)
+            {
+                clients.Remove(player);
+                Debug.Log($"Jugador desconectado: {player.username} | Total: {clients.Count()}");
+            }
+
             try { client.Close(); } catch { }
-            Debug.Log($"Cliente desconectado. Total: {clients.Count()}");
         }
     }
 
-    
-    private async Task BroadcastMessage(TurnInfo action, TcpClient sender)
+    private async Task BroadcastMessage(TurnInfo action, PlayerInfo sender)
     {
         string json = JsonUtility.ToJson(action);
         byte[] data = System.Text.Encoding.UTF8.GetBytes(json);
 
-        Node curr = clients.head;
-        while (curr != null)
+        for (int i = 0; i < clients.Count(); i++)
         {
-            var c = curr.client;
-            curr = curr.next;
-
-            if (c == null || c == sender || !c.Connected) continue;
+            PlayerInfo p = clients.Get(i);
+            if (p == null || p == sender || p.client == null || !p.client.Connected) continue;
 
             try
             {
-                NetworkStream s = c.GetStream();
+                NetworkStream s = p.client.GetStream();
                 await s.WriteAsync(data, 0, data.Length);
             }
             catch
             {
-                // ignorar clientes caídos; los limpiará HandleClient/StopServer
+                // ignorar clientes caídos
             }
         }
     }
-
 
     public void StopServer()
     {
@@ -147,17 +141,12 @@ public class Server
 
         isRunning = false;
         try { cts?.Cancel(); } catch { }
-
         try { listener?.Stop(); } catch { }
 
-        // Cerrar clientes
-        Node curr = clients.head;
-        while (curr != null)
+        for (int i = 0; i < clients.Count(); i++)
         {
-            try { curr.client?.Close(); } catch { }
-            curr = curr.next;
+            try { clients.Get(i)?.client?.Close(); } catch { }
         }
-        clients.clear();
 
         Debug.Log("Servidor cerrado.");
     }

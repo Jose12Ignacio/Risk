@@ -3,7 +3,7 @@ using CrazyRisk;
 using CrazyRisk.Core;
 using UnityEngine.UI;
 
-public class MapViewWithImage : MonoBehaviour
+public class MapViewWithImageLinked : MonoBehaviour
 {
     [Header("Refs")]
     public SpriteRenderer worldMap;       // Imagen del mapa

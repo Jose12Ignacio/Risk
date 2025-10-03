@@ -1,5 +1,7 @@
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Net.Sockets;
 
 [DefaultExecutionOrder(-1000)]
 public class GameManager : MonoBehaviour
@@ -9,7 +11,7 @@ public class GameManager : MonoBehaviour
     public ClientManager clientManager;
     public ServerManager serverManager;
 
-    public ListNode playersList;
+    public LinkedList<PlayerInfo> playersList;
     private int? pendingPlayersUpdate;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -32,36 +34,14 @@ public class GameManager : MonoBehaviour
         serverManager = serverManager ?? GetComponent<ServerManager>() ?? gameObject.AddComponent<ServerManager>();
         clientManager = clientManager ?? GetComponent<ClientManager>() ?? gameObject.AddComponent<ClientManager>();
 
-        SceneManager.sceneLoaded += OnSceneLoaded;
         Debug.Log("[GM] GameManager listo (DontDestroyOnLoad).");
     }
 
-    void OnDestroy()
+    public void StartGame(TurnInfo message) // Iniciar el juego cuando se recibe el mensaje de inicio
     {
-        if (Instance == this) SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
-
-    private void OnSceneLoaded(Scene s, LoadSceneMode m)
-    {
-        if (s.name == "GameRoom" && pendingPlayersUpdate.HasValue)
-        {
-            if (GameRoomManager.Instance != null)
-                GameRoomManager.Instance.UpdatePlayers(pendingPlayersUpdate.Value);
-            pendingPlayersUpdate = null;
-        }
-    }
-
-    public void StartGame(TurnInfo message)
-    {
-        if (serverManager != null && serverManager.server != null)
-            playersList = serverManager.server.clients;
-        else
-            Debug.LogWarning("[GM] StartGame: serverManager o server nulo; se omite playersList.");
-
-        Debug.Log("[GM] Juego iniciado para todos los jugadores.");
-        SceneManager.LoadScene("Game");
-
-        playersList?.NextPlayer();
+        playersList = message.playersList;
+        SceneManager.LoadScene("Game"); //Poner al erjercito neutro si son dos
+        playersList?.nextPlayer();
     }
 
     public void ManageMessages(TurnInfo turnInfo)
@@ -69,18 +49,19 @@ public class GameManager : MonoBehaviour
         if (turnInfo.startGame)
         {
             StartGame(turnInfo);
-            return;
         }
+        else if (playersList.currPlayer.data.firstTurn == true) {
 
-        if (turnInfo.numPlayers > 0)
+        }
+        else
         {
-            if (GameRoomManager.Instance != null)
-                GameRoomManager.Instance.UpdatePlayers(turnInfo.numPlayers);
-            else
-                pendingPlayersUpdate = turnInfo.numPlayers;
-
+            updateGame(turnInfo);
         }
-        Debug.Log("manageMesagges");
+    }
+
+    public void updateGame(TurnInfo turnInfo) //Aca se actualizan las variables propias del jugador
+    {
+        playersList?.nextPlayer();
     }
 }
 

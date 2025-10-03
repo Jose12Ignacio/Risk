@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 public class ServerManager : MonoBehaviour //Creamos esta clase porque el script de server no está integrado en Unity, es C# puro
 {
-    public string playerName = User_info.username;
+    public string playerName;
     public TextMeshProUGUI playersNumber;
     public string ip;
     public static int port = 5000;
@@ -25,46 +25,22 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
         ip = GetLocalIPAddress();
         if (System.Net.IPAddress.TryParse(ip, out _))
         {
-            Debug.Log("Entro");
-            // Iniciar servidor
             server = new Server();
             _ = server.StartServer(port);
-            Debug.Log("Servidor iniciado");
 
-            Node hostNode = new Node();
+            playerName = User_info.username;
 
-            await Task.Delay(500);
-
-            TcpClient hostClient = new TcpClient();
-
-            await hostClient.ConnectAsync(ip, port);  // Se conecta a su propio servidor
-
-            hostNode.client = hostClient;
-
-            server.clients.addLast(hostNode);
-
-            _ = server.HandleClient(hostClient);
-
-            // Crear cliente host
             localPlayer = new Client(playerName);
             await localPlayer.Connect(ip, port);
-            
-
 
             Debug.Log("Cliente local conectado al servidor");
-
-            SceneManager.LoadScene("GameRoom");
         }
     }
 
     // Enviar un movimiento desde el host
-    public async void SendHostMove(TurnInfo action)
-    {
-        if (localPlayer != null)
-            await localPlayer.SendAction(action);
-    }
 
-    public static string GetLocalIPAddress()
+
+    public static string GetLocalIPAddress() //Funcion para obtener la ip como string
     {
         string localIP = "";
         try

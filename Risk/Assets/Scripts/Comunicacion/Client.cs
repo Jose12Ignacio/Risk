@@ -90,7 +90,7 @@ public class Client
                     {
                         if (current.data.username == playerName)
                         {
-                            User_info.color = current.color;
+                            User_info.color = current.data.color;
                             Debug.Log($"Mi color asignado: {User_info.color}");
                             break;
                         }

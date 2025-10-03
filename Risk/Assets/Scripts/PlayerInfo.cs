@@ -5,6 +5,7 @@ public class PlayerInfo
 {
     public string username;
     public string color;
+    public bool firstTurn;
     public TcpClient client;
 
     public PlayerInfo(TcpClient c, string name)
@@ -12,5 +13,6 @@ public class PlayerInfo
         client = c;
         username = name;
         color = ""; // se asigna más tarde
+        firstTurn = true;
     }
 }

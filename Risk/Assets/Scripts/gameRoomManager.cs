@@ -62,9 +62,9 @@ public class GameRoomManager : MonoBehaviour
             TurnInfo message = new TurnInfo();
             message.startGame = true;
             GameManager.Instance.playersList = GameManager.Instance.serverManager.server.clients;
-            GameManager.Instance.playersList.head.color = "red";
-            GameManager.Instance.playersList.head.next.color = "blue";
-            if (GameManager.Instance.playersList.head.next.next != null) GameManager.Instance.playersList.head.next.next.color = "gray";
+            GameManager.Instance.playersList.head.data.color = "red";
+            GameManager.Instance.playersList.head.next.data.color = "blue";
+            if (GameManager.Instance.playersList.head.next.next != null) GameManager.Instance.playersList.head.next.next.data.color = "gray";
             message.playersList = GameManager.Instance.playersList;
             GameManager.Instance.playersList.nextPlayer();
             SceneManager.LoadScene("Game");

@@ -40,9 +40,8 @@ public class GameManager : MonoBehaviour
     public void StartGame(TurnInfo message) // Iniciar el juego cuando se recibe el mensaje de inicio
     {
         playersList = message.playersList;
-        SceneManager.LoadScene("Game");
+        SceneManager.LoadScene("Game"); //Poner al erjercito neutro si son dos
         playersList?.nextPlayer();
-        
     }
 
     public void ManageMessages(TurnInfo turnInfo)
@@ -50,6 +49,9 @@ public class GameManager : MonoBehaviour
         if (turnInfo.startGame)
         {
             StartGame(turnInfo);
+        }
+        else if (playersList.currPlayer.data.firstTurn == true) {
+
         }
         else
         {

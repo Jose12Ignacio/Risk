@@ -38,11 +38,7 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
     }
 
     // Enviar un movimiento desde el host
-    public async void SendHostMove(TurnInfo action)
-    {
-        if (localPlayer != null)
-            await localPlayer.SendAction(action);
-    }
+
 
     public static string GetLocalIPAddress() //Funcion para obtener la ip como string
     {

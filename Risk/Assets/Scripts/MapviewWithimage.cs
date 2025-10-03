@@ -1,161 +1,231 @@
 using UnityEngine;
-using System.Collections.Generic;
-using CrazyRisk;        // TerritorioId, Continente
-using CrazyRisk.Core;  // Mapa, Territorio
+using CrazyRisk;
+using CrazyRisk.Core;
+using UnityEngine.UI;
 
 public class MapViewWithImage : MonoBehaviour
 {
     [Header("Refs")]
-    public SpriteRenderer worldMap;       // Asigna el SpriteRenderer del objeto Worldmap
-    public TerritoryNode territoryPrefab; // Prefab con SpriteRenderer + TextMeshPro (Label)
-    public Material lineMaterial;         // Material Unlit/Color para las aristas
-    public float nodeScale = 1f;
+    public SpriteRenderer worldMap;       // Imagen del mapa
+    public GameObject territoryPrefab;    // Prefab TerritoryNode
+    public GameObject regionButtonPrefab; // Prefab TerritoryUI (botón invisible)
+    public Transform canvasTransform;     // Canvas donde instanciar botones
+    public Material lineMaterial;         // Material de líneas
+    public float lineWidth = 0.02f;
 
-    // Posiciones NORMALIZADAS (0..1) para todos los territorios (aprox. para mapamundi equirectangular).
-    // Ajusta lo que haga falta según tu imagen concreta.
-    Dictionary<TerritorioId, Vector2> pos01 = new Dictionary<TerritorioId, Vector2>
+    [Header("Offsets Globales")]
+    public Vector2 globalNodeOffset = new Vector2(0.5f, 0.5f); // mover todos los nodos en mundo
+    public Vector2 globalLabelOffset = new Vector2(40f, 20f);  // mover todos los labels en pantalla
+    public Vector2 globalButtonOffset = new Vector2(50f, 20f); // mover todos los botones en pantalla
+
+    private Mapa mapa;
+
+    private TerritorioId[] ids;
+    private Vector2[] posiciones;
+    private Vector2[] offsetNombres;
+    private Vector2[] offsetTropas;
+    private Vector2[] offsetBotones;
+
+    private TerritoryNode[] nodes; // Nodos con labels
+    private TerritoryUI[] uis;     // Botones invisibles
+
+    private TerritoryNode atacante;
+    private TerritoryNode defensor;
+
+    void Awake()
     {
-        // América del Norte (9)
-        { TerritorioId.Alaska,         new Vector2(0.07f, 0.62f) },
-        { TerritorioId.NWTerritory,    new Vector2(0.16f, 0.65f) },
-        { TerritorioId.Groenlandia,    new Vector2(0.31f, 0.74f) },
-        { TerritorioId.Alberta,        new Vector2(0.18f, 0.56f) },
-        { TerritorioId.Ontario,        new Vector2(0.27f, 0.57f) },
-        { TerritorioId.Quebec,         new Vector2(0.30f, 0.56f) },
-        { TerritorioId.OesteEEUU,      new Vector2(0.19f, 0.46f) },
-        { TerritorioId.EsteEEUU,       new Vector2(0.24f, 0.46f) },
-        { TerritorioId.CentroAmerica,  new Vector2(0.22f, 0.35f) },
-
-        // Sudamérica (4)
-        { TerritorioId.Venezuela,      new Vector2(0.25f, 0.34f) },
-        { TerritorioId.Peru,           new Vector2(0.23f, 0.22f) },
-        { TerritorioId.Brasil,         new Vector2(0.29f, 0.25f) },
-        { TerritorioId.Argentina,      new Vector2(0.28f, 0.13f) },
-
-        // Europa (7)
-        { TerritorioId.Islandia,       new Vector2(0.36f, 0.67f) },
-        { TerritorioId.GranBretana,    new Vector2(0.39f, 0.58f) },
-        { TerritorioId.Escandinavia,   new Vector2(0.44f, 0.66f) },
-        { TerritorioId.EuropaNorte,    new Vector2(0.46f, 0.59f) },
-        { TerritorioId.EuropaOccidental,new Vector2(0.42f, 0.57f) },
-        { TerritorioId.EuropaSur,      new Vector2(0.45f, 0.51f) },
-        { TerritorioId.Ucrania,        new Vector2(0.51f, 0.59f) },
-
-        // África (6)
-        { TerritorioId.AfricaNorte,    new Vector2(0.46f, 0.43f) },
-        { TerritorioId.Egipto,         new Vector2(0.50f, 0.38f) },
-        { TerritorioId.AfricaEste,     new Vector2(0.54f, 0.31f) },
-        { TerritorioId.Congo,          new Vector2(0.49f, 0.28f) },
-        { TerritorioId.AfricaSur,      new Vector2(0.50f, 0.17f) },
-        { TerritorioId.Madagascar,     new Vector2(0.57f, 0.19f) },
-
-        // Asia (12)
-        { TerritorioId.Ural,           new Vector2(0.56f, 0.60f) },
-        { TerritorioId.Siberia,        new Vector2(0.60f, 0.66f) },
-        { TerritorioId.Yakutsk,        new Vector2(0.68f, 0.67f) },
-        { TerritorioId.Kamchatka,      new Vector2(0.86f, 0.62f) },
-        { TerritorioId.Irkutsk,        new Vector2(0.64f, 0.61f) },
-        { TerritorioId.Mongolia,       new Vector2(0.64f, 0.53f) },
-        { TerritorioId.Japon,          new Vector2(0.80f, 0.50f) },
-        { TerritorioId.China,          new Vector2(0.61f, 0.49f) },
-        { TerritorioId.MedioOriente,   new Vector2(0.53f, 0.43f) },
-        { TerritorioId.India,          new Vector2(0.58f, 0.39f) },
-        { TerritorioId.Siam,           new Vector2(0.63f, 0.42f) },
-        { TerritorioId.Afganistan,     new Vector2(0.57f, 0.52f) },
-
-        // Oceanía (4)
-        { TerritorioId.Indonesia,          new Vector2(0.69f, 0.37f) },
-        { TerritorioId.NuevaGuinea,        new Vector2(0.77f, 0.36f) },
-        { TerritorioId.AustraliaOccidental,new Vector2(0.72f, 0.23f) },
-        { TerritorioId.AustraliaOriental,  new Vector2(0.79f, 0.24f) },
-    };
-
-    Mapa mapa;
-    readonly Dictionary<TerritorioId, TerritoryNode> nodes = new Dictionary<TerritorioId, TerritoryNode>();
+        mapa = Mapa.CrearMapaBase();
+    }
 
     void Start()
     {
-        if (worldMap == null || territoryPrefab == null || lineMaterial == null)
+        // === IDs ===
+        ids = new TerritorioId[]
         {
-            Debug.LogError("MapViewWithImage: faltan referencias (worldMap / territoryPrefab / lineMaterial).");
-            return;
+            TerritorioId.Alaska, TerritorioId.NWTerritory, TerritorioId.Groenlandia,
+            TerritorioId.Alberta, TerritorioId.Ontario, TerritorioId.Quebec,
+            TerritorioId.OesteEEUU, TerritorioId.EsteEEUU, TerritorioId.CentroAmerica,
+            TerritorioId.Venezuela, TerritorioId.Peru, TerritorioId.Brasil, TerritorioId.Argentina,
+            TerritorioId.Islandia, TerritorioId.GranBretana, TerritorioId.Escandinavia,
+            TerritorioId.EuropaNorte, TerritorioId.EuropaOccidental, TerritorioId.EuropaSur, TerritorioId.Ucrania,
+            TerritorioId.AfricaNorte, TerritorioId.Egipto, TerritorioId.AfricaEste,
+            TerritorioId.Congo, TerritorioId.AfricaSur, TerritorioId.Madagascar,
+            TerritorioId.Ural, TerritorioId.Siberia, TerritorioId.Yakutsk, TerritorioId.Kamchatka,
+            TerritorioId.Irkutsk, TerritorioId.Mongolia, TerritorioId.Japon, TerritorioId.China,
+            TerritorioId.MedioOriente, TerritorioId.India, TerritorioId.Siam, TerritorioId.Afganistan,
+            TerritorioId.Indonesia, TerritorioId.NuevaGuinea, TerritorioId.AustraliaOccidental, TerritorioId.AustraliaOriental
+        };
+
+        // === Posiciones base (normalizadas 0..1) ===
+        posiciones = new Vector2[]
+        {
+            new Vector2(0.08f,0.62f), new Vector2(0.16f,0.65f), new Vector2(0.31f,0.74f),
+            new Vector2(0.19f,0.56f), new Vector2(0.27f,0.57f), new Vector2(0.30f,0.56f),
+            new Vector2(0.2f,0.46f), new Vector2(0.24f,0.46f), new Vector2(0.22f,0.35f),
+            new Vector2(0.26f,0.34f), new Vector2(0.23f,0.22f), new Vector2(0.29f,0.25f), new Vector2(0.28f,0.13f),
+            new Vector2(0.37f,0.67f), new Vector2(0.39f,0.58f), new Vector2(0.44f,0.66f),
+            new Vector2(0.47f,0.59f), new Vector2(0.42f,0.57f), new Vector2(0.45f,0.51f), new Vector2(0.51f,0.59f),
+            new Vector2(0.46f,0.43f), new Vector2(0.50f,0.38f), new Vector2(0.54f,0.31f),
+            new Vector2(0.5f,0.28f), new Vector2(0.50f,0.17f), new Vector2(0.57f,0.19f),
+            new Vector2(0.57f,0.60f), new Vector2(0.60f,0.66f), new Vector2(0.68f,0.67f), new Vector2(0.86f,0.62f),
+            new Vector2(0.65f,0.61f), new Vector2(0.64f,0.53f), new Vector2(0.80f,0.50f), new Vector2(0.61f,0.49f),
+            new Vector2(0.54f,0.43f), new Vector2(0.58f,0.39f), new Vector2(0.63f,0.42f), new Vector2(0.57f,0.52f),
+            new Vector2(0.7f,0.37f), new Vector2(0.77f,0.36f), new Vector2(0.72f,0.23f), new Vector2(0.79f,0.24f)
+        };
+
+        // === Offsets iniciales ===
+        offsetNombres = new Vector2[ids.Length];
+        offsetTropas = new Vector2[ids.Length];
+        offsetBotones = new Vector2[ids.Length];
+
+        for (int i = 0; i < ids.Length; i++)
+        {
+            offsetNombres[i] = new Vector2(0, 25);   // nombre arriba
+            offsetTropas[i]  = new Vector2(0, -25);  // tropas abajo
+            offsetBotones[i] = new Vector2(0, 0);    // botón centrado
         }
 
-        mapa = Mapa.CrearMapaBase();   // Crea el grafo con Territorios y Vecinos
-        PlaceNodes();
-        DrawEdges();
+        nodes = new TerritoryNode[ids.Length];
+        uis = new TerritoryUI[ids.Length];
+
+        InstanciarNodosYBotones();
+        DibujarConexiones();
     }
 
-    void PlaceNodes()
+    void Update()
     {
-        var b = worldMap.bounds; // mundo (coordenadas) del sprite del mapa
-        foreach (var kv in mapa.Territorios)
+        // Reajusta posiciones en pantalla
+        for (int i = 0; i < ids.Length; i++)
         {
-            var id = kv.Key;
-            if (!pos01.TryGetValue(id, out var p)) continue;
+            if (nodes[i] == null || uis[i] == null) continue;
 
-            Vector3 worldPos = new Vector3(
-                Mathf.Lerp(b.min.x, b.max.x, p.x),
-                Mathf.Lerp(b.min.y, b.max.y, p.y),
-                -0.01f // un poco delante del fondo
-            );
+            Vector3 screenPos = Camera.main.WorldToScreenPoint(nodes[i].transform.position);
 
-            var node = Instantiate(territoryPrefab, worldPos, Quaternion.identity, transform);
-            node.transform.localScale = Vector3.one * nodeScale;
-            node.id = id;
-            node.SetText(kv.Value.Nombre + "\n" + kv.Value.Tropas); // usa tus datos de Territorio
-            node.OnClicked += HandleClicked;
-            nodes[id] = node;
+            // Nombre
+            if (nodes[i].labelNombre != null)
+                nodes[i].labelNombre.transform.position =
+                    screenPos + (Vector3)(offsetNombres[i] + globalLabelOffset);
+
+            // Tropas
+            if (nodes[i].labelTropas != null)
+                nodes[i].labelTropas.transform.position =
+                    screenPos + (Vector3)(offsetTropas[i] + globalLabelOffset);
+
+            // Botón invisible
+            RectTransform rt = uis[i].GetComponent<RectTransform>();
+            rt.position = screenPos + (Vector3)(offsetBotones[i] + globalButtonOffset);
         }
     }
 
-    void DrawEdges()
-    {
-        foreach (var kv in mapa.Territorios)
-        {
-            var aId = kv.Key;
-            if (!nodes.ContainsKey(aId)) continue;
+    void InstanciarNodosYBotones()
+{
+    var b = worldMap.bounds;
 
-            var t = kv.Value; // lista de vecinos del territorio
-            for (int i = 0; i < t.Vecinos.Count; i++)
+    for (int i = 0; i < ids.Length; i++)
+    {
+        var pos = posiciones[i];
+        var worldPos = new Vector3(
+            Mathf.Lerp(b.min.x, b.max.x, pos.x),
+            Mathf.Lerp(b.min.y, b.max.y, pos.y),
+            -0.01f
+        );
+
+        // aplicar offset global en coordenadas de mundo
+        worldPos += (Vector3)globalNodeOffset;
+
+        // === Nodo en el mapa ===
+        var goNode = Instantiate(territoryPrefab, worldPos, Quaternion.identity, transform);
+        var node = goNode.GetComponent<TerritoryNode>();
+        node.id = ids[i];
+        node.SetData(mapa.GetName(ids[i]), mapa.GetTroops(ids[i]));
+        nodes[i] = node;
+
+        // === Botón UI ===
+        var goUI = Instantiate(regionButtonPrefab, canvasTransform);
+        var ui = goUI.GetComponent<TerritoryUI>();
+        ui.Init(ids[i], mapa.GetName(ids[i]), mapa.GetTroops(ids[i]));
+        ui.OnClicked += HandleClicked;
+        uis[i] = ui;
+
+        // === Alinear botón con el nodo ===
+        Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            canvasTransform as RectTransform,
+            screenPos,
+            Camera.main,
+            out Vector2 localPos
+        );
+
+        goUI.GetComponent<RectTransform>().localPosition = localPos;
+    }
+}
+
+
+
+    void DibujarConexiones()
+    {
+        var buffer = new TerritorioId[12];
+        for (int i = 0; i < ids.Length; i++)
+        {
+            var idA = ids[i];
+            mapa.GetVecinos(idA, buffer, out int count);
+
+            var nodeA = nodes[i];
+            for (int j = 0; j < count; j++)
             {
-                var bId = t.Vecinos[i];
-                if (!nodes.ContainsKey(bId)) continue;
+                var idB = buffer[j];
+                int idxB = GetIndex(idB);
+                if (idxB < 0) continue;
 
-                // para no duplicar líneas, solo dibujo si aId < bId
-                if ((int)aId < (int)bId)
-                    DrawLine(nodes[aId].transform.position, nodes[bId].transform.position);
+                var nodeB = nodes[idxB];
+                if (nodeA != null && nodeB != null)
+                    CrearLinea(nodeA.transform.position, nodeB.transform.position);
             }
         }
     }
 
-    void DrawLine(Vector3 a, Vector3 b)
+    int GetIndex(TerritorioId id)
+    {
+        for (int i = 0; i < ids.Length; i++)
+            if (ids[i] == id) return i;
+        return -1;
+    }
+
+    void CrearLinea(Vector3 a, Vector3 b)
     {
         var go = new GameObject("edge");
         go.transform.SetParent(transform, true);
         var lr = go.AddComponent<LineRenderer>();
         lr.positionCount = 2;
         lr.SetPositions(new[] { a, b });
-        lr.widthMultiplier = 0.04f;
+        lr.widthMultiplier = lineWidth;
         lr.material = lineMaterial;
-        lr.numCapVertices = 4;
-        // que se vea sobre el fondo (si tu fondo está en SortingLayer Background / order -10, esto va bien)
-        lr.sortingLayerName = "Default";
-        lr.sortingOrder = 0;
     }
 
     void HandleClicked(TerritorioId id)
     {
-        foreach (var n in nodes.Values) n.SetHighlighted(false);
-        if (!nodes.ContainsKey(id)) return;
+        var node = nodes[GetIndex(id)];
 
-        nodes[id].SetHighlighted(true);
-        var t = mapa.Get(id);
-        for (int i = 0; i < t.Vecinos.Count; i++)
+        if (atacante == null)
         {
-            var v = t.Vecinos[i];
-            if (nodes.ContainsKey(v)) nodes[v].SetHighlighted(true);
+            atacante = node;
+            atacante.SetHighlighted(true);
+            return;
         }
-        Debug.Log($"Click: {id}  Vecinos: {string.Join(", ", t.Vecinos)}");
+
+        defensor = node;
+        if (defensor == atacante)
+        {
+            atacante.SetHighlighted(false);
+            atacante = null;
+            return;
+        }
+
+        if (mapa.SonVecinos(atacante.id, defensor.id))
+            Debug.Log($"[Ataque] {atacante.Nombre} -> {defensor.Nombre}");
+
+        atacante.SetHighlighted(false);
+        atacante = null;
     }
 }

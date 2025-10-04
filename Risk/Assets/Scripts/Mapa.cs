@@ -68,7 +68,7 @@ namespace CrazyRisk.Core
             count = 0;
             for (int i = 0; i < _maxIds; i++)
                 if (_t[i].Usado) { buffer[count++] = (TerritorioId)i; }
-
+        }
 
         public bool SonVecinos(TerritorioId a, TerritorioId b)
         {

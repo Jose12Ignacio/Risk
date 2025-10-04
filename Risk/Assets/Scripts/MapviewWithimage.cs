@@ -1,36 +1,31 @@
 using UnityEngine;
 using CrazyRisk;
 using CrazyRisk.Core;
-using UnityEngine.UI;
 
-public class MapViewWithImageLinked : MonoBehaviour
+public class MapViewWithImage : MonoBehaviour
 {
     [Header("Refs")]
     public SpriteRenderer worldMap;       // Imagen del mapa
     public GameObject territoryPrefab;    // Prefab TerritoryNode
-    public GameObject regionButtonPrefab; // Prefab TerritoryUI (botón invisible)
-    public Transform canvasTransform;     // Canvas donde instanciar botones
     public Material lineMaterial;         // Material de líneas
     public float lineWidth = 0.02f;
 
     [Header("Offsets Globales")]
     public Vector2 globalNodeOffset = new Vector2(0.5f, 0.5f); // mover todos los nodos en mundo
-    public Vector2 globalLabelOffset = new Vector2(40f, 20f);  // mover todos los labels en pantalla
-    public Vector2 globalButtonOffset = new Vector2(50f, 20f); // mover todos los botones en pantalla
+    public Vector2 globalLabelOffset = new Vector2(0f, 0f);    // mover todos los labels en pantalla
 
     private Mapa mapa;
-
     private TerritorioId[] ids;
     private Vector2[] posiciones;
+    private TerritoryNode[] nodes;
+
+    // Arrays de offset individuales
     private Vector2[] offsetNombres;
     private Vector2[] offsetTropas;
-    private Vector2[] offsetBotones;
 
-    private TerritoryNode[] nodes; // Nodos con labels
-    private TerritoryUI[] uis;     // Botones invisibles
-
-    private TerritoryNode atacante;
-    private TerritoryNode defensor;
+    // Diccionario global accesible por GameUI
+    public static System.Collections.Generic.Dictionary<string, TerritoryNode> nodos =
+        new System.Collections.Generic.Dictionary<string, TerritoryNode>();
 
     void Awake()
     {
@@ -56,7 +51,7 @@ public class MapViewWithImageLinked : MonoBehaviour
             TerritorioId.Indonesia, TerritorioId.NuevaGuinea, TerritorioId.AustraliaOccidental, TerritorioId.AustraliaOriental
         };
 
-        // === Posiciones base (normalizadas 0..1) ===
+        // === Posiciones normalizadas (0..1) ===
         posiciones = new Vector2[]
         {
             new Vector2(0.08f,0.62f), new Vector2(0.16f,0.65f), new Vector2(0.31f,0.74f),
@@ -73,51 +68,22 @@ public class MapViewWithImageLinked : MonoBehaviour
             new Vector2(0.7f,0.37f), new Vector2(0.77f,0.36f), new Vector2(0.72f,0.23f), new Vector2(0.79f,0.24f)
         };
 
-        // === Offsets iniciales ===
+        // Inicializar arrays de offsets
         offsetNombres = new Vector2[ids.Length];
         offsetTropas = new Vector2[ids.Length];
-        offsetBotones = new Vector2[ids.Length];
 
         for (int i = 0; i < ids.Length; i++)
         {
-            offsetNombres[i] = new Vector2(0, 25);   // nombre arriba
-            offsetTropas[i]  = new Vector2(0, -25);  // tropas abajo
-            offsetBotones[i] = new Vector2(0, 0);    // botón centrado
+            offsetNombres[i] = new Vector2(0, 25);  // nombre arriba
+            offsetTropas[i]  = new Vector2(0, -20); // tropas abajo
         }
 
         nodes = new TerritoryNode[ids.Length];
-        uis = new TerritoryUI[ids.Length];
-
-        InstanciarNodosYBotones();
+        InstanciarNodos();
         DibujarConexiones();
     }
 
-    void Update()
-    {
-        // Reajusta posiciones en pantalla
-        for (int i = 0; i < ids.Length; i++)
-        {
-            if (nodes[i] == null || uis[i] == null) continue;
-
-            Vector3 screenPos = Camera.main.WorldToScreenPoint(nodes[i].transform.position);
-
-            // Nombre
-            if (nodes[i].labelNombre != null)
-                nodes[i].labelNombre.transform.position =
-                    screenPos + (Vector3)(offsetNombres[i] + globalLabelOffset);
-
-            // Tropas
-            if (nodes[i].labelTropas != null)
-                nodes[i].labelTropas.transform.position =
-                    screenPos + (Vector3)(offsetTropas[i] + globalLabelOffset);
-
-            // Botón invisible
-            RectTransform rt = uis[i].GetComponent<RectTransform>();
-            rt.position = screenPos + (Vector3)(offsetBotones[i] + globalButtonOffset);
-        }
-    }
-
-    void InstanciarNodosYBotones()
+    void InstanciarNodos()
 {
     var b = worldMap.bounds;
 
@@ -130,38 +96,47 @@ public class MapViewWithImageLinked : MonoBehaviour
             -0.01f
         );
 
-        // aplicar offset global en coordenadas de mundo
         worldPos += (Vector3)globalNodeOffset;
 
-        // === Nodo en el mapa ===
         var goNode = Instantiate(territoryPrefab, worldPos, Quaternion.identity, transform);
         var node = goNode.GetComponent<TerritoryNode>();
         node.id = ids[i];
         node.SetData(mapa.GetName(ids[i]), mapa.GetTroops(ids[i]));
         nodes[i] = node;
 
-        // === Botón UI ===
-        var goUI = Instantiate(regionButtonPrefab, canvasTransform);
-        var ui = goUI.GetComponent<TerritoryUI>();
-        ui.Init(ids[i], mapa.GetName(ids[i]), mapa.GetTroops(ids[i]));
-        ui.OnClicked += HandleClicked;
-        uis[i] = ui;
+        string nombre = ids[i].ToString();
+        if (!nodos.ContainsKey(nombre))
+            nodos.Add(nombre, node);
 
-        // === Alinear botón con el nodo ===
-        Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+        // 👀 Aquí agregamos el log
+        Debug.Log($"Mapa bounds: min={b.min}, max={b.max}, size={b.size}");
 
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            canvasTransform as RectTransform,
-            screenPos,
-            Camera.main,
-            out Vector2 localPos
-        );
-
-        goUI.GetComponent<RectTransform>().localPosition = localPos;
     }
 }
 
+    void Update()
+    {
+        for (int i = 0; i < ids.Length; i++)
+        {
+            if (nodes[i] == null) continue;
 
+            Vector3 screenPos = Camera.main.WorldToScreenPoint(nodes[i].transform.position);
+
+            // === Nombre ===
+            if (nodes[i].labelNombre != null)
+            {
+                nodes[i].labelNombre.transform.position =
+                    screenPos + (Vector3)(offsetNombres[i] + globalLabelOffset);
+            }
+
+            // === Tropas ===
+            if (nodes[i].labelTropas != null)
+            {
+                nodes[i].labelTropas.transform.position =
+                    screenPos + (Vector3)(offsetTropas[i] + globalLabelOffset);
+            }
+        }
+    }
 
     void DibujarConexiones()
     {
@@ -201,31 +176,5 @@ public class MapViewWithImageLinked : MonoBehaviour
         lr.SetPositions(new[] { a, b });
         lr.widthMultiplier = lineWidth;
         lr.material = lineMaterial;
-    }
-
-    void HandleClicked(TerritorioId id)
-    {
-        var node = nodes[GetIndex(id)];
-
-        if (atacante == null)
-        {
-            atacante = node;
-            atacante.SetHighlighted(true);
-            return;
-        }
-
-        defensor = node;
-        if (defensor == atacante)
-        {
-            atacante.SetHighlighted(false);
-            atacante = null;
-            return;
-        }
-
-        if (mapa.SonVecinos(atacante.id, defensor.id))
-            Debug.Log($"[Ataque] {atacante.Nombre} -> {defensor.Nombre}");
-
-        atacante.SetHighlighted(false);
-        atacante = null;
     }
 }

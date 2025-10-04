@@ -1321,6 +1321,8 @@ MonoBehaviour:
   lineWidth: 0.02
   globalNodeOffset: {x: 0, y: 0}
   globalLabelOffset: {x: 40, y: 20}
+  escalaX: 100
+  escalaY: 80
 --- !u!1 &1841881085
 GameObject:
   m_ObjectHideFlags: 0

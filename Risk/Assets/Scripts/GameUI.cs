@@ -31,26 +31,38 @@ public class GameUI : MonoBehaviour
         }
     }
 
-    public void ShowActions(TerritoryNode atq)
+    /// <summary>
+    /// Revisa el array de seleccionados y ajusta la UI.
+    /// Llamar este método después de cada clic en un TerritoryNode.
+    /// </summary>
+    public void UpdateFromSeleccion()
     {
-        atacante = atq;
-        defensor = null;
-        if (panel != null) panel.SetActive(true);
+        string[] seleccionados = TerritoryNode.ObtenerSeleccionados();
 
-        botones[0].gameObject.SetActive(false);
-        botones[1].gameObject.SetActive(false);
-        botones[2].gameObject.SetActive(true);
-    }
+        if (seleccionados.Length == 1)
+        {
+            atacante = MapViewWithImage.nodos[seleccionados[0]];
+            defensor = null;
 
-    public void ShowActions(TerritoryNode atq, TerritoryNode def)
-    {
-        atacante = atq;
-        defensor = def;
-        if (panel != null) panel.SetActive(true);
+            if (panel != null) panel.SetActive(true);
+            botones[0].gameObject.SetActive(false); // Atacar
+            botones[1].gameObject.SetActive(false); // Mover
+            botones[2].gameObject.SetActive(true);  // Reforzar
+        }
+        else if (seleccionados.Length == 2)
+        {
+            atacante =MapViewWithImage.nodos[seleccionados[0]];
+            defensor  = MapViewWithImage.nodos[seleccionados[1]];
 
-        botones[0].gameObject.SetActive(true);
-        botones[1].gameObject.SetActive(true);
-        botones[2].gameObject.SetActive(false);
+            if (panel != null) panel.SetActive(true);
+            botones[0].gameObject.SetActive(true);  // Atacar
+            botones[1].gameObject.SetActive(true);  // Mover
+            botones[2].gameObject.SetActive(false); // Reforzar
+        }
+        else
+        {
+            Clear();
+        }
     }
 
     public void Clear()
@@ -65,6 +77,7 @@ public class GameUI : MonoBehaviour
         if (AttackRequested != null && atacante != null && defensor != null)
             AttackRequested(atacante, defensor);
         Clear();
+        TerritoryNode.LimpiarSeleccion();
     }
 
     void OnMoveClicked()
@@ -72,6 +85,7 @@ public class GameUI : MonoBehaviour
         if (MoveRequested != null && atacante != null && defensor != null)
             MoveRequested(atacante, defensor);
         Clear();
+        TerritoryNode.LimpiarSeleccion();
     }
 
     void OnReinforceClicked()
@@ -79,5 +93,6 @@ public class GameUI : MonoBehaviour
         if (ReinforceRequested != null && atacante != null)
             ReinforceRequested(atacante);
         Clear();
+        TerritoryNode.LimpiarSeleccion();
     }
 }

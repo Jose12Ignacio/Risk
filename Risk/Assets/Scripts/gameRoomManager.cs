@@ -77,13 +77,13 @@ public class GameRoomManager : MonoBehaviour
             GameManager.Instance.setTerritories();
             message.playersList = GameManager.Instance.playersList;
             message.territoriesList = GameManager.Instance.territoriesList;
-
+            Debug.Log("Cargando escena");
             SceneManager.LoadScene("Game");
             GameManager.Instance.clientManager.SendMove(message);
             GameManager.Instance.addTroop = GameObject.Find("AddTroop").GetComponent<Button>();
-            GameManager.Instance.addTroop.gameObject.SetActive(false);
+            GameManager.Instance.addTroop.gameObject.SetActive(true);
             GameManager.Instance.setButtonActive();
-            Debug.Log(GameManager.Instance.playersList.Count());
+            Debug.Log(GameManager.Instance.playersList.Count() + "escena cargada");
         }
 
     }
@@ -95,7 +95,7 @@ public class GameRoomManager : MonoBehaviour
             if (ipCode != null && GameManager.Instance.serverManager != null)
             {
                 ipCode.text = $"Ip: {GameManager.Instance.serverManager.ip}";
-                Debug.Log(GameManager.Instance.serverManager.server.clients.Count());
+                //Debug.Log(GameManager.Instance.serverManager.server.clients.Count());
             }
         }
         

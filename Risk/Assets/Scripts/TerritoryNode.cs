@@ -24,35 +24,11 @@ namespace CrazyRisk
         void Awake()
         {
             sr = GetComponent<SpriteRenderer>();
+            originalColor = sr.color;
 
-            // 👀 Forzar Sorting Layer de nodos
-            if (sr != null)
-            {
-                sr.sortingLayerName = "UI";  // o "Nodos" si la creaste
-                sr.sortingOrder = 10;
-                originalColor = sr.color;
-            }
-
-            // 👀 Forzar Sorting Layer en labels
-            if (labelNombre != null)
-            {
-                var labelRenderer = labelNombre.GetComponent<MeshRenderer>();
-                if (labelRenderer != null)
-                {
-                    labelRenderer.sortingLayerName = "UI";
-                    labelRenderer.sortingOrder = 11; // encima del nodo
-                }
-            }
-
-            if (labelTropas != null)
-            {
-                var tropasRenderer = labelTropas.GetComponent<MeshRenderer>();
-                if (tropasRenderer != null)
-                {
-                    tropasRenderer.sortingLayerName = "UI";
-                    tropasRenderer.sortingOrder = 11; // encima del nodo
-                }
-            }
+            // Forzar capa y orden de dibujo
+            sr.sortingLayerName = "Default";
+            sr.sortingOrder = 10;
         }
 
         void OnMouseDown()
@@ -63,8 +39,8 @@ namespace CrazyRisk
             seleccionado = !seleccionado;
             SetHighlighted(seleccionado);
 
-            Debug.Log("Click en: " + nombre);
-            Debug.Log("Lista actual: " + string.Join(", ", territoriosSeleccionados));
+            Debug.Log($" Click detectado en nodo: {nombre}");
+            Debug.Log($"Lista actual: {string.Join(", ", territoriosSeleccionados)}");
         }
 
         void OnMouseEnter()
@@ -139,4 +115,3 @@ namespace CrazyRisk
         }
     }
 }
-

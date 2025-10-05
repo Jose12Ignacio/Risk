@@ -84,35 +84,35 @@ public class MapViewWithImage : MonoBehaviour
     }
 
     void InstanciarNodos()
-{
-    var b = worldMap.bounds;
-
-    for (int i = 0; i < ids.Length; i++)
     {
-        var pos = posiciones[i];
-        var worldPos = new Vector3(
-            Mathf.Lerp(b.min.x, b.max.x, pos.x),
-            Mathf.Lerp(b.min.y, b.max.y, pos.y),
-            -0.01f
-        );
+        var b = worldMap.bounds;
 
-        worldPos += (Vector3)globalNodeOffset;
+        for (int i = 0; i < ids.Length; i++)
+        {
+            var pos = posiciones[i];
+            var worldPos = new Vector3(
+                Mathf.Lerp(b.min.x, b.max.x, pos.x),
+                Mathf.Lerp(b.min.y, b.max.y, pos.y),
+                -1f // 👈 nodos por delante del mapa (clickeables)
+            );
 
-        var goNode = Instantiate(territoryPrefab, worldPos, Quaternion.identity, transform);
-        var node = goNode.GetComponent<TerritoryNode>();
-        node.id = ids[i];
-        node.SetData(mapa.GetName(ids[i]), mapa.GetTroops(ids[i]));
-        nodes[i] = node;
+            worldPos += (Vector3)globalNodeOffset;
 
-        string nombre = ids[i].ToString();
-        if (!nodos.ContainsKey(nombre))
-            nodos.Add(nombre, node);
+            var goNode = Instantiate(territoryPrefab, worldPos, Quaternion.identity, transform);
+            goNode.transform.localScale = Vector3.one * 0.05f; // 👈 tamaño visual pequeño pero collider grande
 
-        // 👀 Aquí agregamos el log
-        Debug.Log($"Mapa bounds: min={b.min}, max={b.max}, size={b.size}");
+            var node = goNode.GetComponent<TerritoryNode>();
+            node.id = ids[i];
+            node.SetData(mapa.GetName(ids[i]), mapa.GetTroops(ids[i]));
+            nodes[i] = node;
 
+            string nombre = ids[i].ToString();
+            if (!nodos.ContainsKey(nombre))
+                nodos.Add(nombre, node);
+
+            Debug.Log($"Nodo creado: {nombre} en {worldPos}");
+        }
     }
-}
 
     void Update()
     {
@@ -176,5 +176,6 @@ public class MapViewWithImage : MonoBehaviour
         lr.SetPositions(new[] { a, b });
         lr.widthMultiplier = lineWidth;
         lr.material = lineMaterial;
+        lr.sortingOrder = 0; // detrás de los nodos
     }
 }

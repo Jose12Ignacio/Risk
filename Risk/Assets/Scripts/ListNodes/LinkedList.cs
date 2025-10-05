@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using UnityEngine;
 
 
 public class LinkedList<T>
@@ -16,9 +17,12 @@ public class LinkedList<T>
         }
     }
 
+    private static System.Random rnd = new System.Random();
     public Node? head;
     private int count = 0;
     public Node? currPlayer;
+
+    public Node? currNode;
 
 
     public void Add(T value)
@@ -93,4 +97,43 @@ public class LinkedList<T>
         }
         currPlayer = currPlayer?.next;
     }
+    
+    public void nextNode()
+    {
+        if (currNode == null || currNode.next == null)
+        {
+            currNode = head;
+        }
+        currNode = currNode?.next;
+    }
+
+    public Node? RandomNode(int elements)
+    {
+        Node? curr = head;
+        int i;
+        if (curr == null)
+        {
+            return null;
+        }
+        i = rnd.Next(elements);
+
+        for (int j = 0; j < i; j++)
+        {
+            if (curr == null)
+            {
+                curr = head;
+            }
+            else
+            {
+                curr = curr.next;
+            }
+        }
+        if (curr == null)
+        {
+            curr = head;
+        }
+        return curr;
+    }
+
+    
 }

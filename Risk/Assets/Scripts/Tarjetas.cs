@@ -101,9 +101,6 @@ namespace CrazyRisk.Core
 
             return false;
         }
-
-        // 👉 Aquí luego harás un método para poblar el mazo base (42 territorios + 2 comodines)
-        // private void ConstruirMazoBase() { ... }
     }
 }
 

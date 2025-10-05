@@ -92,8 +92,6 @@ public class Server
                 string json = System.Text.Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
 
-                Debug.Log($"Acción recibida de {player.username}: {receivedAction.actionType}");
-
                 await BroadcastMessage(receivedAction, player);
             }
         }

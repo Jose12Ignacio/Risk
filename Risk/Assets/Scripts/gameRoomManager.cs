@@ -64,13 +64,24 @@ public class GameRoomManager : MonoBehaviour
             GameManager.Instance.playersList = GameManager.Instance.serverManager.server.clients;
             GameManager.Instance.playersList.head.data.color = "red";
             GameManager.Instance.playersList.head.next.data.color = "blue";
-            if (GameManager.Instance.playersList.head.next.next != null) GameManager.Instance.playersList.head.next.next.data.color = "gray";
-            message.playersList = GameManager.Instance.playersList;
+            if (GameManager.Instance.playersList.head.next.next == null)
+            {
+                PlayerInfo bot = new PlayerInfo(null, "bot");
+                bot.bot = true;
+                GameManager.Instance.playersList.Add(bot);
+            }
+            GameManager.Instance.playersList.head.next.next.data.color = "gray";
             GameManager.Instance.playersList.nextPlayer();
+
+            GameManager.Instance.setEjercito();
+            GameManager.Instance.setTerritories();
+            message.playersList = GameManager.Instance.playersList;
+            message.territoriesList = GameManager.Instance.territoriesList;
+
             SceneManager.LoadScene("Game");
             GameManager.Instance.clientManager.SendMove(message);
+            GameManager.Instance.setButtonActive();
             Debug.Log(GameManager.Instance.playersList.Count());
-
         }
 
     }

@@ -80,6 +80,8 @@ public class GameRoomManager : MonoBehaviour
 
             SceneManager.LoadScene("Game");
             GameManager.Instance.clientManager.SendMove(message);
+            GameManager.Instance.addTroop = GameObject.Find("AddTroop").GetComponent<Button>();
+            GameManager.Instance.addTroop.gameObject.SetActive(false);
             GameManager.Instance.setButtonActive();
             Debug.Log(GameManager.Instance.playersList.Count());
         }

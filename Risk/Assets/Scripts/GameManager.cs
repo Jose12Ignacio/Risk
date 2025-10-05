@@ -210,7 +210,6 @@ public class GameManager : MonoBehaviour
         }
         return territoriesToLook.currNode.data;
     }
-
     public void addTropButton()
     {
         string[] territoriostring = TerritoryNode.ObtenerSeleccionados();

@@ -40,5 +40,10 @@ namespace CrazyRisk.Core
 
         public override string ToString()
             => $"Ejército {Alias} ({Color}) - Tropas: {TropasDisponibles}, Tarjetas: {Tarjetas.Count}";
+
+        public void removeTrop()
+        {
+            TropasDisponibles--;
+        }
     }
 }

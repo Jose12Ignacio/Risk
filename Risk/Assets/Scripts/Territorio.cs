@@ -6,20 +6,20 @@ namespace CrazyRisk.Core
     public class Territorio
     {
         public TerritorioId Id { get; }
-        public string Nombre { get; }
-        public Continente Continente { get; }
+        public string? Nombre { get; }
+        public Continente? Continente { get; }
         public Ejercito? Duenio { get; private set; }
         public int Tropas { get; private set; }
 
         // Ahora usamos nuestra lista enlazada genérica para los vecinos
         public LinkedList<TerritorioId> Vecinos { get; } = new LinkedList<TerritorioId>();
 
-        public Territorio(TerritorioId id, string nombre, Continente continente)
+        public Territorio(TerritorioId id, Continente Continente)
         {
             Id = id;
-            Nombre = nombre;
-            Continente = continente;
             Tropas = 0;
+            this.Continente = Continente;
+            Nombre = id.ToString();
         }
 
         public void CambiarDuenio(Ejercito nuevoDuenio) => Duenio = nuevoDuenio;

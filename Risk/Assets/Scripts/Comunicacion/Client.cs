@@ -1,9 +1,12 @@
+
 using System;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Newtonsoft.Json;
+using CrazyRisk.Core;
 
 public class Client
 {
@@ -17,31 +20,27 @@ public class Client
     public Client(string playerName)
     {
         this.playerName = playerName;
-        client = new TcpClient(); //Crear el objeto client
+        client = new TcpClient();
     }
 
-    // Conectarse al servidor
     public async Task Connect(string ip, int port)
     {
         try
         {
-            await client.ConnectAsync(ip, port); //Intenta y espera conectarse a la dirección dada
-            stream = client.GetStream(); //Establece el canal de comunicación
+            await client.ConnectAsync(ip, port);
+            stream = client.GetStream();
             await Task.Delay(100);
-            Debug.Log("Conectado");
-            Debug.Log(playerName);
-            
+
+            Debug.Log($"Conectado como {playerName}");
+
             byte[] nameBytes = Encoding.UTF8.GetBytes(playerName);
             await stream.WriteAsync(nameBytes, 0, nameBytes.Length);
 
-            Debug.Log("Enviado");
-
             OnConnected?.Invoke();
 
-            // Empezar a recibir mensajes
             _ = ReceiveMessages();
         }
-        catch (Exception ex) //Avisar si hubo un error en la conexión
+        catch (Exception ex)
         {
             Debug.LogError($"No se pudo conectar: {ex.Message}");
             OnConnectionError?.Invoke(ex.Message);
@@ -75,10 +74,25 @@ public class Client
     // Recibir mensajes del servidor
     private async Task ReceiveMessages()
     {
-        byte[] buffer = new byte[1024];
-        try
+        while (client.Connected)
         {
-            while (client.Connected)
+            byte[] lengthBuffer = new byte[4];
+            await ReadExactlyAsync(lengthBuffer, 4);
+            int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
+
+            byte[] messageBuffer = new byte[messageLength];
+            await ReadExactlyAsync(messageBuffer, messageLength);
+
+            string json = Encoding.UTF8.GetString(messageBuffer);
+
+            // Configuración de deserialización con converters
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(new LinkedListConverter<PlayerInfo>());
+            settings.Converters.Add(new LinkedListConverter<Territorio>());
+
+            TurnInfo receivedAction = JsonConvert.DeserializeObject<TurnInfo>(json, settings);
+
+            if (receivedAction == null)
             {
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                 if (bytesRead == 0) break;
@@ -106,16 +120,57 @@ public class Client
                 GameManager.Instance.ManageMessages(receivedAction);
                 Debug.Log("Mensaje recibido");
             }
+
+            Debug.Log("Mensaje recibido (Newtonsoft): " + json);
+
+            // Guardar color propio si el mensaje contiene info de jugadores
+            var me = FindPlayer(playerName, receivedAction.playersList);
+            if (me != null && !string.IsNullOrEmpty(me.color))
+            {
+                User_info.color = me.color;
+                Debug.Log($"Mi color asignado: {User_info.color}");
+            }
+
+            GameManager.Instance.ManageMessages(receivedAction);
         }
-        catch (Exception ex)
+    }
+    catch (Exception ex)
+    {
+        Debug.LogWarning($"Error recibiendo mensaje: {ex.Message}");
+    }
+    finally
+    {
+        client.Close();
+        SceneManager.LoadScene("Login");
+        Debug.Log("Conexión cerrada");
+    }
+}
+
+
+    // Método seguro para encontrar tu PlayerInfo
+    private PlayerInfo? FindPlayer(string playerName, LinkedList<PlayerInfo> list)
+    {
+        if (list == null || list.Count() == 0) return null;
+
+        for (int i = 0; i < list.Count(); i++)
         {
-            Debug.LogWarning($"Error recibiendo mensaje: {ex.Message}");
+            var player = list.Get(i);
+            if (player != null && !string.IsNullOrEmpty(player.username) && player.username == playerName)
+                return player;
         }
-        finally
+
+        return null;
+    }
+
+    private async Task ReadExactlyAsync(byte[] buffer, int length)
+    {
+        int totalRead = 0;
+        while (totalRead < length)
         {
-            client.Close();
-            SceneManager.LoadScene("Login");
-            Debug.Log("Conexión cerrada");
+            int bytesRead = await stream.ReadAsync(buffer, totalRead, length - totalRead);
+            if (bytesRead == 0)
+                throw new Exception("Conexión cerrada por el servidor");
+            totalRead += bytesRead;
         }
     }
 }

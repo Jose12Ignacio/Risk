@@ -19,17 +19,6 @@ public class GameUI : MonoBehaviour
     private TerritoryNode atacante;
     private TerritoryNode defensor;
 
-    void Awake()
-    {
-        if (panel != null) panel.SetActive(false);
-
-        if (botones != null && botones.Length >= 3)
-        {
-            botones[0].onClick.AddListener(OnAttackClicked);
-            botones[1].onClick.AddListener(OnMoveClicked);
-            botones[2].onClick.AddListener(OnReinforceClicked);
-        }
-    }
 
     /// <summary>
     /// Revisa el array de seleccionados y ajusta la UI.

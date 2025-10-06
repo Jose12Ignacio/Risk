@@ -7,9 +7,6 @@ public class TurnInfo
 {
     // === Datos básicos del turno ===
     public string color;
-    public string actionType;
-    public string fromTerritory;
-    public string toTerritory;
     public int troops;
     public bool startGame;
     public int numPlayers;

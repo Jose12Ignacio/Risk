@@ -47,35 +47,32 @@ public class Client
         }
     }
 
+    // Enviar un movimiento al servidor en el formaro de TurnInfo
     public async Task SendAction(TurnInfo action)
     {
-        if (stream == null)
+        if (stream != null)
         {
-            Debug.LogWarning("No hay stream disponible para enviar mensajes.");
-            return;
-        }
+            try
+            {
+                // ✅ Prepara los datos para enviar (convierte LinkedLists → arrays)
+                action.PrepareForSend();
 
-        try
-        {
-            string json = JsonConvert.SerializeObject(action); // ✅ Newtonsoft
-            byte[] data = Encoding.UTF8.GetBytes(json);
+                string json = JsonUtility.ToJson(action);
+                byte[] data = Encoding.UTF8.GetBytes(json);
 
-            // Enviar longitud primero
-            byte[] lengthBytes = BitConverter.GetBytes(data.Length);
-            await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length);
-            await stream.WriteAsync(data, 0, data.Length);
-
-            Debug.Log($"Enviado: {json}");
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"Error enviando mensaje: {ex.Message}");
+                await stream.WriteAsync(data, 0, data.Length);
+                Debug.Log("Enviando");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error enviando mensaje: {ex.Message}");
+            }
         }
     }
 
-private async Task ReceiveMessages()
-{
-    try
+
+    // Recibir mensajes del servidor
+    private async Task ReceiveMessages()
     {
         while (client.Connected)
         {
@@ -97,8 +94,31 @@ private async Task ReceiveMessages()
 
             if (receivedAction == null)
             {
-                Debug.LogWarning("Mensaje JSON inválido recibido");
-                continue;
+                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                if (bytesRead == 0) break;
+
+                string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
+                receivedAction.RebuildLinkedLists();
+
+                // Guardar color propio si el mensaje contiene info de jugadores
+                if (receivedAction.startGame && receivedAction.playersList != null)
+                {
+                    var current = receivedAction.playersList.head;
+                    while (current != null)
+                    {
+                        if (current.data.username == playerName)
+                        {
+                            User_info.color = current.data.color;
+                            Debug.Log($"Mi color asignado: {User_info.color}");
+                            break;
+                        }
+                        current = current.next;
+                    }
+                }
+
+                GameManager.Instance.ManageMessages(receivedAction);
+                Debug.Log("Mensaje recibido");
             }
 
             Debug.Log("Mensaje recibido (Newtonsoft): " + json);

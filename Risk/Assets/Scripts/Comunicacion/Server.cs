@@ -127,9 +127,11 @@ public class Server
 
     private async Task BroadcastMessage(TurnInfo action, PlayerInfo sender)
     {
-        string json = JsonConvert.SerializeObject(action);
-        byte[] data = Encoding.UTF8.GetBytes(json);
-        byte[] lengthBytes = BitConverter.GetBytes(data.Length);
+        // ✅ Preparar las estructuras para envío
+        action.PrepareForSend();
+
+        string json = JsonUtility.ToJson(action);
+        byte[] data = System.Text.Encoding.UTF8.GetBytes(json);
 
         foreach (var kvp in clientSockets)
         {

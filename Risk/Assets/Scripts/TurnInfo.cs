@@ -1,12 +1,11 @@
 using System;
-using UnityEngine;
-using System.Net.Sockets;
 using CrazyRisk.Core;
+using UnityEngine;
 
 [Serializable]
-public class TurnInfo //La finalidad de la clase es crear una base para la información que se comparte a las otras computadoras.
+public class TurnInfo
 {
-    //Esta información se convierte a Json y se envia al socket, luego la otra computadora lo interpreta
+    // === Datos básicos del turno ===
     public string color;
     public int troops;
     public bool startGame;
@@ -15,10 +14,49 @@ public class TurnInfo //La finalidad de la clase es crear una base para la infor
     public string ipCode;
     public bool gameRoom = false;
 
-    public LinkedList<PlayerInfo> playersList = new LinkedList<PlayerInfo>();
-    public LinkedList<Territorio> territoriesList = new LinkedList<Territorio>();
+    // === Estructuras personalizadas ===
+    public LinkedList<PlayerInfo> playersList;
+    public LinkedList<Territorio> territoriesList;
 
-    public bool setTropsFase;
+    // === Copias serializables (para JSON) ===
+    public PlayerInfo[] playersArray;
+    public Territorio[] territoriesArray;
 
-    public bool normalGame;
+    // === Convertir antes de enviar ===
+    public void PrepareForSend()
+    {
+        if (playersList != null)
+            playersArray = LinkedListToArray(playersList);
+
+        if (territoriesList != null)
+            territoriesArray = LinkedListToArray(territoriesList);
+    }
+
+    // === Reconstruir al recibir ===
+    public void RebuildLinkedLists()
+    {
+        if (playersArray != null && playersArray.Length > 0)
+            playersList = ArrayToLinkedList(playersArray);
+
+        if (territoriesArray != null && territoriesArray.Length > 0)
+            territoriesList = ArrayToLinkedList(territoriesArray);
+    }
+
+    // === Utilidades ===
+    private static T[] LinkedListToArray<T>(LinkedList<T> list)
+    {
+        int count = list.Count();
+        T[] arr = new T[count];
+        for (int i = 0; i < count; i++)
+            arr[i] = list.Get(i);
+        return arr;
+    }
+
+    private static LinkedList<T> ArrayToLinkedList<T>(T[] arr)
+    {
+        var l = new LinkedList<T>();
+        for (int i = 0; i < arr.Length; i++)
+            l.Add(arr[i]);
+        return l;
+    }
 }

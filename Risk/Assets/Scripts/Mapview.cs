@@ -1,136 +1,123 @@
 using UnityEngine;
-using CrazyRisk;       // TerritorioId, Continente
-using CrazyRisk.Core;  // Mapa, Territorio
+using CrazyRisk;
+using CrazyRisk.Core;
 
 public class MapView : MonoBehaviour
 {
-    public TerritoryNode territoryPrefab;
-    public Material lineMaterial;
-    public float nodeScale = 1f;
+    [Header("Refs")]
+    public SpriteRenderer worldMap;        // SpriteRenderer del mapa
+    public TerritoryNode territoryPrefab;  // Prefab de nodo de territorio
+    public Material lineMaterial;          // Material para las conexiones
+    public float lineWidth = 0.02f;
 
-    // Arrays paralelos para posiciones
-    TerritorioId[] posKeys = new TerritorioId[]
+    private Mapa mapa;
+
+    private TerritorioId[] ids;
+    private Vector2[] posiciones;
+    private TerritoryNode[] nodes;
+
+    void Awake()
     {
-        TerritorioId.Alaska,
-        TerritorioId.NWTerritory,
-        TerritorioId.Alberta,
-        TerritorioId.Ontario,
-        TerritorioId.OesteEEUU,
-        TerritorioId.Kamchatka
-    };
-
-    Vector2[] posValues = new Vector2[]
-    {
-        new Vector2(-8f, 3f),
-        new Vector2(-6f, 3.2f),
-        new Vector2(-6f, 1.8f),
-        new Vector2(-4f, 2.1f),
-        new Vector2(-5f, 0.6f),
-        new Vector2( 6f, 3.5f)
-    };
-
-    Mapa mapa;
-
-    // Arrays paralelos para nodos instanciados
-    TerritorioId[] nodeKeys;
-    TerritoryNode[] nodeValues;
-    int nodeCount = 0;
+        mapa = Mapa.CrearMapaBase();
+    }
 
     void Start()
     {
-        mapa = Mapa.CrearMapaBase(); // crea grafo con territorios y vecinos propios
-
-        // Inicializa arrays con tamaño fijo igual al número de territorios
-        int totalTerritorios = mapa.GetAllTerritorios().Length;
-        nodeKeys = new TerritorioId[totalTerritorios];
-        nodeValues = new TerritoryNode[totalTerritorios];
-
-        // Instanciar nodos
-        var territorios = mapa.GetAllTerritorios();
-        for (int i = 0; i < territorios.Length; i++)
+        // === IDs ===
+        ids = new TerritorioId[]
         {
-            var territorio = territorios[i];
-            var id = territorio.Id;
+            TerritorioId.Alaska, TerritorioId.NWTerritory, TerritorioId.Groenlandia,
+            TerritorioId.Alberta, TerritorioId.Ontario, TerritorioId.Quebec,
+            TerritorioId.OesteEEUU, TerritorioId.EsteEEUU, TerritorioId.CentroAmerica,
+            TerritorioId.Venezuela, TerritorioId.Peru, TerritorioId.Brasil, TerritorioId.Argentina,
+            TerritorioId.Islandia, TerritorioId.GranBretana, TerritorioId.Escandinavia,
+            TerritorioId.EuropaNorte, TerritorioId.EuropaOccidental, TerritorioId.EuropaSur, TerritorioId.Ucrania,
+            TerritorioId.AfricaNorte, TerritorioId.Egipto, TerritorioId.AfricaEste,
+            TerritorioId.Congo, TerritorioId.AfricaSur, TerritorioId.Madagascar,
+            TerritorioId.Ural, TerritorioId.Siberia, TerritorioId.Yakutsk, TerritorioId.Kamchatka,
+            TerritorioId.Irkutsk, TerritorioId.Mongolia, TerritorioId.Japon, TerritorioId.China,
+            TerritorioId.MedioOriente, TerritorioId.India, TerritorioId.Siam, TerritorioId.Afganistan,
+            TerritorioId.Indonesia, TerritorioId.NuevaGuinea, TerritorioId.AustraliaOccidental, TerritorioId.AustraliaOriental
+        };
 
-            Vector2? pos = GetPos(id);
-            if (pos == null) continue;
+        // === Posiciones base (0..1 normalizadas) ===
+        posiciones = new Vector2[]
+        {
+            new Vector2(0.07f,0.62f), new Vector2(0.16f,0.65f), new Vector2(0.31f,0.74f),
+            new Vector2(0.18f,0.56f), new Vector2(0.27f,0.57f), new Vector2(0.30f,0.56f),
+            new Vector2(0.19f,0.46f), new Vector2(0.24f,0.46f), new Vector2(0.22f,0.35f),
+            new Vector2(0.25f,0.34f), new Vector2(0.23f,0.22f), new Vector2(0.29f,0.25f), new Vector2(0.28f,0.13f),
+            new Vector2(0.36f,0.67f), new Vector2(0.39f,0.58f), new Vector2(0.44f,0.66f),
+            new Vector2(0.46f,0.59f), new Vector2(0.42f,0.57f), new Vector2(0.45f,0.51f), new Vector2(0.51f,0.59f),
+            new Vector2(0.46f,0.43f), new Vector2(0.50f,0.38f), new Vector2(0.54f,0.31f),
+            new Vector2(0.49f,0.28f), new Vector2(0.50f,0.17f), new Vector2(0.57f,0.19f),
+            new Vector2(0.56f,0.60f), new Vector2(0.60f,0.66f), new Vector2(0.68f,0.67f), new Vector2(0.86f,0.62f),
+            new Vector2(0.64f,0.61f), new Vector2(0.64f,0.53f), new Vector2(0.80f,0.50f), new Vector2(0.61f,0.49f),
+            new Vector2(0.53f,0.43f), new Vector2(0.58f,0.39f), new Vector2(0.63f,0.42f), new Vector2(0.57f,0.52f),
+            new Vector2(0.69f,0.37f), new Vector2(0.77f,0.36f), new Vector2(0.72f,0.23f), new Vector2(0.79f,0.24f)
+        };
 
-            var node = Instantiate(territoryPrefab, pos.Value, Quaternion.identity, transform);
-            node.transform.localScale = Vector3.one * nodeScale;
-            node.id = id;
-            node.spriteRenderer.color = new Color(0.2f, 0.6f, 1f, 0.5f);
-            node.SetText(territorio.Nombre + "\n" + territorio.Tropas);
-            node.OnClicked += HandleClicked;
+        nodes = new TerritoryNode[ids.Length];
+        InstanciarNodos();
+        DibujarConexiones();
+    }
 
-            nodeKeys[nodeCount] = id;
-            nodeValues[nodeCount] = node;
-            nodeCount++;
+    void InstanciarNodos()
+    {
+        var b = worldMap.bounds;
+        for (int i = 0; i < ids.Length; i++)
+        {
+            var pos = posiciones[i];
+            var worldPos = new Vector3(
+                Mathf.Lerp(b.min.x, b.max.x, pos.x),
+                Mathf.Lerp(b.min.y, b.max.y, pos.y),
+                -0.01f
+            );
+
+            var node = Instantiate(territoryPrefab, worldPos, Quaternion.identity, transform);
+            node.id = ids[i];
+            node.SetData(mapa.GetName(ids[i]), mapa.GetTroops(ids[i]));
+            nodes[i] = node;
         }
+    }
 
-        // Dibujar aristas
-        for (int i = 0; i < territorios.Length; i++)
+    void DibujarConexiones()
+    {
+        var buffer = new TerritorioId[12];
+        for (int i = 0; i < ids.Length; i++)
         {
-            var a = territorios[i];
-            var aNode = GetNode(a.Id);
-            if (aNode == null) continue;
+            var idA = ids[i];
+            mapa.GetVecinos(idA, buffer, out int count);
 
-            for (int j = 0; j < a.Vecinos.Count(); j++)
+            var nodeA = nodes[i];
+            for (int j = 0; j < count; j++)
             {
-                var bId = a.Vecinos.Get(j);
-                var bNode = GetNode(bId);
-                if (bNode != null && (int)a.Id < (int)bId)
-                {
-                    DrawEdge(aNode.transform.position, bNode.transform.position);
-                }
+                var idB = buffer[j];
+                int idxB = GetIndex(idB);
+                if (idxB < 0) continue;
+
+                var nodeB = nodes[idxB];
+                if (nodeA != null && nodeB != null)
+                    CrearLinea(nodeA.transform.position, nodeB.transform.position);
             }
         }
     }
 
-    void HandleClicked(TerritorioId id)
+    int GetIndex(TerritorioId id)
     {
-        // Desmarcar todos los nodos
-        for (int i = 0; i < nodeCount; i++)
-            nodeValues[i].SetHighlighted(false);
-
-        var node = GetNode(id);
-        if (node == null) return;
-
-        node.SetHighlighted(true);
-
-        var t = mapa.Get(id);
-        for (int i = 0; i < t.Vecinos.Count(); i++)
-        {
-            var vId = t.Vecinos.Get(i);
-            var vNode = GetNode(vId);
-            if (vNode != null) vNode.SetHighlighted(true);
-        }
+        for (int i = 0; i < ids.Length; i++)
+            if (ids[i] == id) return i;
+        return -1;
     }
 
-    void DrawEdge(Vector3 a, Vector3 b)
+    void CrearLinea(Vector3 a, Vector3 b)
     {
         var go = new GameObject("edge");
         go.transform.SetParent(transform, true);
         var lr = go.AddComponent<LineRenderer>();
         lr.positionCount = 2;
         lr.SetPositions(new[] { a, b });
-        lr.widthMultiplier = 0.05f;
+        lr.widthMultiplier = lineWidth;
         lr.material = lineMaterial;
-        lr.numCapVertices = 4;
-        lr.useWorldSpace = true;
-    }
-
-    // 🔹 Helpers
-    Vector2? GetPos(TerritorioId id)
-    {
-        for (int i = 0; i < posKeys.Length; i++)
-            if (posKeys[i] == id) return posValues[i];
-        return null;
-    }
-
-    TerritoryNode GetNode(TerritorioId id)
-    {
-        for (int i = 0; i < nodeCount; i++)
-            if (nodeKeys[i] == id) return nodeValues[i];
-        return null;
     }
 }

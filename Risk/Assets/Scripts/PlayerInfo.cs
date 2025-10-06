@@ -18,6 +18,7 @@ public class PlayerInfo
 
     public PlayerInfo(TcpClient c, string name)
     {
+        myTerritories = new LinkedList<Territorio>();
         client = c;
         username = name;
         color = ""; // se asigna más tarde

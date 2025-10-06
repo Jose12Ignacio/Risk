@@ -18,7 +18,7 @@ public class GameManager : MonoBehaviour
     public LinkedList<PlayerInfo> playersList;
     public LinkedList<Territorio> territoriesList;
 
-    public Button addTroop;
+    public Button AddTroop;
 
     public AudioSource audioSource;
     public AudioClip errorSound;
@@ -35,7 +35,7 @@ public class GameManager : MonoBehaviour
 
     public void setButtonActive()
     {
-        addTroop.gameObject.SetActive(true);
+        AddTroop.gameObject.SetActive(true);
     }
 
     void Awake()
@@ -48,14 +48,41 @@ public class GameManager : MonoBehaviour
         serverManager = serverManager ?? GetComponent<ServerManager>() ?? gameObject.AddComponent<ServerManager>();
         clientManager = clientManager ?? GetComponent<ClientManager>() ?? gameObject.AddComponent<ClientManager>();
 
+        playersList = playersList ?? new LinkedList<PlayerInfo>();
+        territoriesList = territoriesList ?? new LinkedList<Territorio>();
+
+        // NO hacer GameObject.Find de UI aquí
+        SceneManager.sceneLoaded += OnSceneLoaded_GameManager;
+
         Debug.Log("[GM] GameManager listo (DontDestroyOnLoad).");
     }
 
+    private void OnSceneLoaded_GameManager(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name != "Game") return;
+        SceneManager.sceneLoaded -= OnSceneLoaded_GameManager;
+
+        // Busca UI segura y asigna
+        var go = GameObject.Find("AddTroop");
+        if (go != null)
+        {
+            AddTroop = go.GetComponent<Button>();
+            // no asumir que AddTroop != null
+        }
+        else
+        {
+            Debug.LogWarning("AddTroop no encontrado en la escena Game");
+        }
+    }
+
+
+
     public void StartGame(TurnInfo message) // Iniciar el juego cuando se recibe el mensaje de inicio
     {
+        Debug.Log("Inciando juego");
         playersList = message.playersList;
         SceneManager.LoadScene("Game"); //Poner al erjercito neutro si son dos
-        addTroop.gameObject.SetActive(false);
+        AddTroop.gameObject.SetActive(false);
         territoriesList = message.territoriesList;
     }
 
@@ -77,7 +104,7 @@ public class GameManager : MonoBehaviour
         territoriesList = turnInfo.territoriesList;
         if (playersList.currPlayer.data.username == User_info.username)
         {
-            addTroop.gameObject.SetActive(true);
+            AddTroop.gameObject.SetActive(true);
         }
     }
 
@@ -91,6 +118,7 @@ public class GameManager : MonoBehaviour
         {
             Territorio newTerritorio = new Territorio(id, GetContinenteFor(id));
             territoriesList.Add(newTerritorio);
+            
         }
         int num = territoriesList.Count();
 
@@ -98,6 +126,7 @@ public class GameManager : MonoBehaviour
         {
             for (int j = 0; j < 3; j++)
             {
+
                 LinkedList<Territorio>.Node randomTerritory = territoriesList.RandomNode(num);
                 while (randomTerritory.data.Duenio != null)
                 {
@@ -228,7 +257,7 @@ public class GameManager : MonoBehaviour
             {
                 addTroopToTerritory(territorio.Id, playersList.currPlayer.data);
                 playersList.currPlayer.data.ejercitoPlayer.removeTrop();
-                addTroop.gameObject.SetActive(false);
+                AddTroop.gameObject.SetActive(false);
                 playersList.nextPlayer();
                 if (playersList.currPlayer.data.bot == true)
                 {

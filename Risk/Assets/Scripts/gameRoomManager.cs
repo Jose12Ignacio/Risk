@@ -55,38 +55,88 @@ public class GameRoomManager : MonoBehaviour
     }
 
 
-    public void sendStartMessage()//Va a enviar una el mensaje de incio y pasa a la nueva escena
+    public void sendStartMessage()
     {
-        if (User_info.manager == true && GameManager.Instance.serverManager.server.clients.Count() >= 2)
-        {
-            TurnInfo message = new TurnInfo();
-            message.startGame = true;
-            GameManager.Instance.playersList = GameManager.Instance.serverManager.server.clients;
-            GameManager.Instance.playersList.head.data.color = "red";
-            GameManager.Instance.playersList.head.next.data.color = "blue";
-            if (GameManager.Instance.playersList.head.next.next == null)
-            {
-                PlayerInfo bot = new PlayerInfo(null, "bot");
-                bot.bot = true;
-                GameManager.Instance.playersList.Add(bot);
-            }
-            GameManager.Instance.playersList.head.next.next.data.color = "gray";
-            GameManager.Instance.playersList.nextPlayer();
+        if (!User_info.manager) return;
 
-            GameManager.Instance.setEjercito();
-            GameManager.Instance.setTerritories();
-            message.playersList = GameManager.Instance.playersList;
-            message.territoriesList = GameManager.Instance.territoriesList;
-            Debug.Log("Cargando escena");
-            SceneManager.LoadScene("Game");
-            GameManager.Instance.clientManager.SendMove(message);
-            GameManager.Instance.addTroop = GameObject.Find("AddTroop").GetComponent<Button>();
-            GameManager.Instance.addTroop.gameObject.SetActive(true);
-            GameManager.Instance.setButtonActive();
-            Debug.Log(GameManager.Instance.playersList.Count() + "escena cargada");
+        if (GameManager.Instance == null || GameManager.Instance.serverManager?.server == null)
+        {
+            Debug.LogError("GameManager o server no inicializados");
+            return;
         }
 
+        var clients = GameManager.Instance.serverManager.server.clients;
+        if (clients == null || clients.Count() < 2)
+        {
+            Debug.LogError("clients es null o < 2");
+            return;
+        }
+
+        // Asignar playersList (datos)
+        GameManager.Instance.playersList = clients;
+
+        // Validar antes de acceder a head/data
+        if (clients.head == null || clients.head.data == null) { Debug.LogError("clients.head o head.data null"); return; }
+        clients.head.data.color = "red";
+
+        if (clients.head.next == null || clients.head.next.data == null) { Debug.LogError("clients.head.next o next.data null"); return; }
+        clients.head.next.data.color = "blue";
+
+        // Añadir bot si hace falta
+        if (clients.head.next.next == null)
+        {
+            PlayerInfo bot = new PlayerInfo(null, "bot");
+            bot.bot = true;
+            GameManager.Instance.playersList.Add(bot);
+        }
+
+        if (GameManager.Instance.playersList.head.next.next?.data != null)
+            GameManager.Instance.playersList.head.next.next.data.color = "gray";
+
+        GameManager.Instance.playersList.nextPlayer();
+
+        // Inicializaciones de datos que no dependen de la UI
+        GameManager.Instance.setEjercito();
+        GameManager.Instance.setTerritories();
+
+        // Preparar y enviar mensaje
+        TurnInfo message = new TurnInfo
+        {
+            startGame = true,
+            playersList = GameManager.Instance.playersList,
+            territoriesList = GameManager.Instance.territoriesList
+        };
+
+        // Registrar callback y cargar escena; la inicialización de UI se hará en OnGameSceneLoaded
+        SceneManager.sceneLoaded += OnGameSceneLoaded;
+        SceneManager.LoadScene("Game");
+
+        // Enviar al servidor (puedes hacerlo antes o después según tu protocolo)
+        GameManager.Instance.clientManager?.SendMove(message);
     }
+
+    private void OnGameSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name != "Game") return;
+        SceneManager.sceneLoaded -= OnGameSceneLoaded;
+
+        var go = GameObject.Find("AddTroop");
+        if (go != null)
+        {
+            GameManager.Instance.AddTroop = go.GetComponent<Button>();
+            if (GameManager.Instance.AddTroop != null)
+                GameManager.Instance.setButtonActive();
+            else
+                Debug.LogWarning("AddTroop existe pero no tiene componente Button");
+        }
+        else
+        {
+            Debug.LogWarning("AddTroop no encontrado en la escena Game");
+        }
+
+        Debug.Log($"Jugadores: {GameManager.Instance.playersList?.Count()} - escena inicializada");
+    }
+
 
     void Update()
     {

@@ -27,6 +27,7 @@ public class LinkedList<T>
 
     public void Add(T value)
     {
+        Debug.Log("anadiendo");
         Node newNode = new Node(value);
         if (head == null)
         {

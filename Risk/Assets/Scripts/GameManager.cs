@@ -77,13 +77,21 @@ public class GameManager : MonoBehaviour
 
 
 
-    public void StartGame(TurnInfo message) // Iniciar el juego cuando se recibe el mensaje de inicio
+    public void StartGame(TurnInfo message)
     {
-        Debug.Log("Inciando juego");
-        playersList = message.playersList;
-        SceneManager.LoadScene("Game"); //Poner al erjercito neutro si son dos
+        Debug.Log("Iniciando juego");
+
+        // Asegurarse de no asignar null
+        playersList = message.playersList ?? new LinkedList<PlayerInfo>();
+        territoriesList = message.territoriesList ?? new LinkedList<Territorio>();
+
+        if (playersList.Count() == 0)
+            Debug.LogWarning("La lista de jugadores está vacía");
+        if (territoriesList.Count() == 0)
+            Debug.LogWarning("La lista de territorios está vacía");
+
+        SceneManager.LoadScene("Game");
         AddTroop.gameObject.SetActive(false);
-        territoriesList = message.territoriesList;
     }
 
     public void ManageMessages(TurnInfo turnInfo)

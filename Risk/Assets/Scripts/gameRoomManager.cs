@@ -65,7 +65,7 @@ public class GameRoomManager : MonoBehaviour
             return;
         }
 
-        var clients = GameManager.Instance.serverManager.server.clients;
+        var clients = GameManager.Instance.serverManager.server.players;
         if (clients == null || clients.Count() < 2)
         {
             Debug.LogError("clients es null o < 2");
@@ -85,7 +85,7 @@ public class GameRoomManager : MonoBehaviour
         // Añadir bot si hace falta
         if (clients.head.next.next == null)
         {
-            PlayerInfo bot = new PlayerInfo(null, "bot");
+            PlayerInfo bot = new PlayerInfo("bot");
             bot.bot = true;
             GameManager.Instance.playersList.Add(bot);
         }
@@ -107,9 +107,14 @@ public class GameRoomManager : MonoBehaviour
             territoriesList = GameManager.Instance.territoriesList
         };
 
+        Debug.Log("mi nombre");
+        Debug.Log(message.playersList.head.data.username);
+        
+
         // Registrar callback y cargar escena; la inicialización de UI se hará en OnGameSceneLoaded
         SceneManager.sceneLoaded += OnGameSceneLoaded;
         SceneManager.LoadScene("Game");
+        Debug.Log(message.playersList == null);
 
         // Enviar al servidor (puedes hacerlo antes o después según tu protocolo)
         GameManager.Instance.clientManager?.SendMove(message);

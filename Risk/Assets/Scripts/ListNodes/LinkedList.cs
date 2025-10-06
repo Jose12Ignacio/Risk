@@ -98,7 +98,7 @@ public class LinkedList<T>
         }
         currPlayer = currPlayer?.next;
     }
-    
+
     public void nextNode()
     {
         if (currNode == null || currNode.next == null)
@@ -136,5 +136,8 @@ public class LinkedList<T>
         return curr;
     }
 
-    
+    public void Clear()
+    {
+        head = null;
+    }    
 }

@@ -20,7 +20,7 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
         DontDestroyOnLoad(this.gameObject);
     }
 
-    public async void StartServerAndLocalPlayer()
+    public void StartServerAndLocalPlayer()
     {
         ip = GetLocalIPAddress();
         if (System.Net.IPAddress.TryParse(ip, out _))
@@ -30,10 +30,7 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
 
             playerName = User_info.username;
 
-            localPlayer = new Client(playerName);
-            await localPlayer.Connect(ip, port);
-
-            Debug.Log("Cliente local conectado al servidor");
+            GameManager.Instance.clientManager.ConnectToServer(playerName, ip);
         }
     }
 
@@ -62,7 +59,7 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
 
     public int getPlayers()
     {
-        return server.clients.Count();
+        return server.players.Count();
     }
 
 }

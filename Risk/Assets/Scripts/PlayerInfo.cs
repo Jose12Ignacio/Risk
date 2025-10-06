@@ -8,7 +8,6 @@ public class PlayerInfo
     public string username;
     public string color;
     public bool bot;
-    public TcpClient client;
 
     public Ejercito ejercitoPlayer;
 
@@ -16,10 +15,9 @@ public class PlayerInfo
 
     public bool firstTurn;
 
-    public PlayerInfo(TcpClient c, string name)
+    public PlayerInfo(string name)
     {
         myTerritories = new LinkedList<Territorio>();
-        client = c;
         username = name;
         color = ""; // se asigna más tarde
         firstTurn = true;

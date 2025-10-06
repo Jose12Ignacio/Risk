@@ -49,17 +49,20 @@ public class Client
     }
 
     // Enviar un movimiento al servidor en el formaro de TurnInfo
-    public async Task SendAction(TurnInfo action) //Va a enviar la jugada que el cliente haga
+    public async Task SendAction(TurnInfo action)
     {
-        if (stream != null) //Verificamos que stream exista, si no el servidor se puede romper
+        if (stream != null)
         {
             try
             {
-                string json = JsonUtility.ToJson(action); //Convertimos el objeto TurnInfo a Json, luego a bytes
+                // ✅ Prepara los datos para enviar (convierte LinkedLists → arrays)
+                action.PrepareForSend();
+
+                string json = JsonUtility.ToJson(action);
                 byte[] data = Encoding.UTF8.GetBytes(json);
-                await stream.WriteAsync(data, 0, data.Length); //Mandamos esos bytes
+
+                await stream.WriteAsync(data, 0, data.Length);
                 Debug.Log("Enviando");
-                
             }
             catch (Exception ex)
             {
@@ -67,6 +70,7 @@ public class Client
             }
         }
     }
+
 
     // Recibir mensajes del servidor
     private async Task ReceiveMessages()
@@ -81,6 +85,7 @@ public class Client
 
                 string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
+                receivedAction.RebuildLinkedLists();
 
                 // Guardar color propio si el mensaje contiene info de jugadores
                 if (receivedAction.startGame && receivedAction.playersList != null)

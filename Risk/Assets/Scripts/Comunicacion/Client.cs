@@ -51,6 +51,7 @@ public class Client
     // Enviar un movimiento al servidor en el formaro de TurnInfo
     public async Task SendAction(TurnInfo action) //Va a enviar la jugada que el cliente haga
     {
+        Debug.Log(stream != null);
         if (stream != null) //Verificamos que stream exista, si no el servidor se puede romper
         {
             try
@@ -58,8 +59,8 @@ public class Client
                 string json = JsonUtility.ToJson(action); //Convertimos el objeto TurnInfo a Json, luego a bytes
                 byte[] data = Encoding.UTF8.GetBytes(json);
                 await stream.WriteAsync(data, 0, data.Length); //Mandamos esos bytes
-                Debug.Log("Enviando");
-                
+                Debug.Log("Enviando SendAction");
+
             }
             catch (Exception ex)
             {
@@ -78,6 +79,8 @@ public class Client
             {
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                 if (bytesRead == 0) break;
+
+                Debug.Log("Mensaje recibido1");
 
                 string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 TurnInfo receivedAction = JsonUtility.FromJson<TurnInfo>(json);
@@ -99,7 +102,7 @@ public class Client
                 }
 
                 GameManager.Instance.ManageMessages(receivedAction);
-                Debug.Log("Mensaje recibido");
+                Debug.Log("Mensaje recibido2");
             }
         }
         catch (Exception ex)

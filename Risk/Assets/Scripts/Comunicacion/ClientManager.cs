@@ -20,7 +20,6 @@ public class ClientManager : MonoBehaviour
         // Suscribirse a eventos ANTES de intentar conectar
         localPlayer.OnConnected += () =>
         {
-            Debug.Log("Conexión exitosa, cambiando a GameRoom...");
             SceneManager.LoadScene("GameRoom");
         };
 
@@ -35,9 +34,12 @@ public class ClientManager : MonoBehaviour
 
     public async void SendMove(TurnInfo action) //Enviar información del movimiento hecho
     {
+        Debug.Log("LocalPlayer" + localPlayer != null);
         if (localPlayer != null)
+        {
             await localPlayer.SendAction(action); //Llama a la función en si
-        
+            Debug.Log("Mensaje enviado");
+        }
     }
 
 }

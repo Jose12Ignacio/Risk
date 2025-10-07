@@ -35,88 +35,114 @@ public class GameManager : MonoBehaviour
 
     public void setButtonActive()
     {
-        AddTroop.gameObject.SetActive(true);
+        if (AddTroop != null)
+            AddTroop.gameObject.SetActive(true);
     }
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        serverManager = serverManager ?? GetComponent<ServerManager>() ?? gameObject.AddComponent<ServerManager>();
-        clientManager = clientManager ?? GetComponent<ClientManager>() ?? gameObject.AddComponent<ClientManager>();
+        // Inicialización segura
+        serverManager = GetComponent<ServerManager>() ?? gameObject.AddComponent<ServerManager>();
+        clientManager = GetComponent<ClientManager>() ?? gameObject.AddComponent<ClientManager>();
 
-        playersList = playersList ?? new LinkedList<PlayerInfo>();
-        territoriesList = territoriesList ?? new LinkedList<Territorio>();
+        if (playersList == null) playersList = new LinkedList<PlayerInfo>();
+        if (territoriesList == null) territoriesList = new LinkedList<Territorio>();
 
-        // NO hacer GameObject.Find de UI aquí
         SceneManager.sceneLoaded += OnSceneLoaded_GameManager;
-
         Debug.Log("[GM] GameManager listo (DontDestroyOnLoad).");
     }
 
     private void OnSceneLoaded_GameManager(Scene scene, LoadSceneMode mode)
     {
         if (scene.name != "Game") return;
+
         SceneManager.sceneLoaded -= OnSceneLoaded_GameManager;
 
-        // Busca UI segura y asigna
         var go = GameObject.Find("AddTroop");
         if (go != null)
         {
             AddTroop = go.GetComponent<Button>();
-            // no asumir que AddTroop != null
         }
         else
         {
-            Debug.LogWarning("AddTroop no encontrado en la escena Game");
+            Debug.LogWarning("[GM] AddTroop no encontrado en la escena Game");
         }
     }
 
-
-
+    // ===============================
+    // 🔹 Iniciar juego (desde TurnInfo)
+    // ===============================
     public void StartGame(TurnInfo message)
     {
-        Debug.Log("Iniciando juego");
+        Debug.Log("Iniciando juego...");
 
-        // Asegurarse de no asignar null
+        // Protección contra null
+        if (message == null)
+        {
+            Debug.LogError("[GM] El mensaje TurnInfo recibido es null.");
+            return;
+        }
+
+        if (message.playersList == null)
+            Debug.LogWarning("⚠️ La lista de jugadores está vacía");
+        if (message.territoriesList == null)
+            Debug.LogWarning("⚠️ La lista de territorios está vacía");
+
+        // Asignar listas recibidas
         playersList = message.playersList ?? new LinkedList<PlayerInfo>();
         territoriesList = message.territoriesList ?? new LinkedList<Territorio>();
 
-        if (playersList.Count() == 0)
-            Debug.LogWarning("La lista de jugadores está vacía");
-        if (territoriesList.Count() == 0)
-            Debug.LogWarning("La lista de territorios está vacía");
-
         SceneManager.LoadScene("Game");
-        AddTroop.gameObject.SetActive(false);
     }
 
+    // ===============================
+    // 🔹 Gestionar mensajes recibidos
+    // ===============================
     public void ManageMessages(TurnInfo turnInfo)
     {
+        if (turnInfo == null)
+        {
+            Debug.LogWarning("[GM] TurnInfo recibido es null.");
+            return;
+        }
+
         if (turnInfo.startGame)
         {
             StartGame(turnInfo);
         }
-        else if (turnInfo.setTropsFase == true)
+        else if (turnInfo.setTropsFase)
         {
             updateTroopFase(turnInfo);
         }
     }
 
+    // ===============================
+    // 🔹 Actualizar fase de tropas
+    // ===============================
     public void updateTroopFase(TurnInfo turnInfo)
     {
-        playersList = turnInfo.playersList;
-        territoriesList = turnInfo.territoriesList;
-        if (playersList.currPlayer.data.username == User_info.username)
+        playersList = turnInfo.playersList ?? playersList;
+        territoriesList = turnInfo.territoriesList ?? territoriesList;
+
+        if (playersList.currPlayer != null &&
+            playersList.currPlayer.data.username == User_info.username)
         {
-            AddTroop.gameObject.SetActive(true);
+            AddTroop?.gameObject.SetActive(true);
         }
     }
 
-
+    // ===============================
+    // 🔹 Generar territorios
+    // ===============================
     public void setTerritories()
     {
         var territorios = (CrazyRisk.TerritorioId[])Enum.GetValues(typeof(CrazyRisk.TerritorioId));
@@ -126,20 +152,18 @@ public class GameManager : MonoBehaviour
         {
             Territorio newTerritorio = new Territorio(id, GetContinenteFor(id));
             territoriesList.Add(newTerritorio);
-            
         }
+
         int num = territoriesList.Count();
 
         for (int i = 0; i < territoriosNum; i++)
         {
             for (int j = 0; j < 3; j++)
             {
-
-                LinkedList<Territorio>.Node randomTerritory = territoriesList.RandomNode(num);
+                var randomTerritory = territoriesList.RandomNode(num);
                 while (randomTerritory.data.Duenio != null)
-                {
                     randomTerritory = territoriesList.RandomNode(num);
-                }
+
                 randomTerritory.data.CambiarDuenio(playersList.currPlayer.data.ejercitoPlayer);
                 randomTerritory.data.AgregarTropas(1);
                 playersList.currPlayer.data.myTerritories.Add(randomTerritory.data);
@@ -148,11 +172,13 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // ===============================
+    // 🔹 Determinar continente
+    // ===============================
     private CrazyRisk.Continente GetContinenteFor(TerritorioId id)
     {
         switch (id)
         {
-            // América del Norte
             case TerritorioId.Alaska:
             case TerritorioId.NWTerritory:
             case TerritorioId.Groenlandia:
@@ -164,14 +190,12 @@ public class GameManager : MonoBehaviour
             case TerritorioId.CentroAmerica:
                 return Continente.AmericaNorte;
 
-            // Sudamérica
             case TerritorioId.Venezuela:
             case TerritorioId.Peru:
             case TerritorioId.Brasil:
             case TerritorioId.Argentina:
                 return Continente.AmericaSur;
 
-            // Europa
             case TerritorioId.Islandia:
             case TerritorioId.GranBretana:
             case TerritorioId.Escandinavia:
@@ -181,7 +205,6 @@ public class GameManager : MonoBehaviour
             case TerritorioId.Ucrania:
                 return Continente.Europa;
 
-            // África
             case TerritorioId.AfricaNorte:
             case TerritorioId.Egipto:
             case TerritorioId.AfricaEste:
@@ -190,7 +213,6 @@ public class GameManager : MonoBehaviour
             case TerritorioId.Madagascar:
                 return Continente.Africa;
 
-            // Asia
             case TerritorioId.Ural:
             case TerritorioId.Siberia:
             case TerritorioId.Yakutsk:
@@ -205,7 +227,6 @@ public class GameManager : MonoBehaviour
             case TerritorioId.Afganistan:
                 return Continente.Asia;
 
-            // Oceanía
             case TerritorioId.Indonesia:
             case TerritorioId.NuevaGuinea:
             case TerritorioId.AustraliaOccidental:
@@ -217,6 +238,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // ===============================
+    // 🔹 Crear ejércitos iniciales
+    // ===============================
     public void setEjercito()
     {
         for (int i = 0; i < 3; i++)
@@ -226,82 +250,100 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // ===============================
+    // 🔹 Agregar tropas a territorio
+    // ===============================
     public void addTroopToTerritory(TerritorioId territorio, PlayerInfo player)
     {
-        searchTerritory(territorio, player.myTerritories).AgregarTropas(1);
+        var t = searchTerritory(territorio, player.myTerritories);
+        t?.AgregarTropas(1);
     }
 
     public void addTroopToTerritoryBot()
     {
-        playersList.currPlayer.data.myTerritories.RandomNode(playersList.currPlayer.data.myTerritories.Count()).data.AgregarTropas(1);
+        var random = playersList.currPlayer.data.myTerritories.RandomNode(playersList.currPlayer.data.myTerritories.Count());
+        random.data.AgregarTropas(1);
         playersList.currPlayer.data.ejercitoPlayer.removeTrop();
     }
 
+    // ===============================
+    // 🔹 Buscar territorio específico
+    // ===============================
     public Territorio searchTerritory(TerritorioId territorio, LinkedList<Territorio> territoriesToLook)
     {
         territoriesToLook.currNode = territoriesToLook.head;
-        TerritorioId currTerr = territoriesToLook.head.data.Id;
-        while (territoriesToLook.head.data.Id != territorio)
+
+        while (territoriesToLook.currNode != null)
         {
-            territoriesList.nextNode();
+            if (territoriesToLook.currNode.data.Id == territorio)
+                return territoriesToLook.currNode.data;
+
+            territoriesToLook.nextNode();
         }
-        return territoriesToLook.currNode.data;
+
+        return null;
     }
+
+    // ===============================
+    // 🔹 Botón agregar tropa
+    // ===============================
     public void addTropButton()
     {
         string[] territoriostring = TerritoryNode.ObtenerSeleccionados();
+
         if (territoriostring.Length > 1)
         {
             audioSource.PlayOneShot(errorSound);
+            return;
         }
-        else
+
+        Territorio territorio = FindTerritory(territoriostring[0], territoriesList);
+
+        if (territorio == null || territorio.Duenio.Alias != playersList.currPlayer.data.username)
         {
-            Territorio territorio = FindTerritory(territoriostring[0], territoriesList);
-            if (territorio == null || territorio.Duenio.Alias != playersList.currPlayer.data.username)
-            {
-                audioSource.PlayOneShot(errorSound);
-            }
-            else
-            {
-                addTroopToTerritory(territorio.Id, playersList.currPlayer.data);
-                playersList.currPlayer.data.ejercitoPlayer.removeTrop();
-                AddTroop.gameObject.SetActive(false);
-                playersList.nextPlayer();
-                if (playersList.currPlayer.data.bot == true)
-                {
-                    addTroopToTerritoryBot();
-                    playersList.nextPlayer();
-                }
-                TurnInfo newMessage = new TurnInfo();
-                newMessage.playersList = playersList;
-                newMessage.territoriesList = territoriesList;
-                if (playersList.currPlayer.next == null && playersList.currPlayer.data.ejercitoPlayer.TropasDisponibles == 0)
-                {
-                    newMessage.normalGame = true;
-                }
-                else
-                {
-                    newMessage.setTropsFase = true;
-                }
-                clientManager.SendMove(newMessage);
-            }
+            audioSource.PlayOneShot(errorSound);
+            return;
         }
 
+        addTroopToTerritory(territorio.Id, playersList.currPlayer.data);
+        playersList.currPlayer.data.ejercitoPlayer.removeTrop();
+        AddTroop.gameObject.SetActive(false);
+        playersList.nextPlayer();
 
+        if (playersList.currPlayer.data.bot)
+        {
+            addTroopToTerritoryBot();
+            playersList.nextPlayer();
+        }
+
+        TurnInfo newMessage = new TurnInfo
+        {
+            playersList = playersList,
+            territoriesList = territoriesList,
+            setTropsFase = true
+        };
+
+        if (playersList.currPlayer.next == null && playersList.currPlayer.data.ejercitoPlayer.TropasDisponibles == 0)
+            newMessage.normalGame = true;
+
+        clientManager.SendMove(newMessage);
     }
 
+    // ===============================
+    // 🔹 Buscar territorio por nombre
+    // ===============================
     public Territorio FindTerritory(string territory, LinkedList<Territorio> playerTerritories)
     {
         playerTerritories.currNode = playerTerritories.head;
-        while (playerTerritories.currNode != null && playerTerritories.currNode.data.Nombre != territory)
+
+        while (playerTerritories.currNode != null)
         {
+            if (playerTerritories.currNode.data.Nombre == territory)
+                return playerTerritories.currNode.data;
+
             playerTerritories.nextNode();
         }
-        if (playerTerritories.currNode == null)
-        {
-            return null;
-        }
-        return playerTerritories.currNode.data;
-    }   
-}
 
+        return null;
+    }
+}

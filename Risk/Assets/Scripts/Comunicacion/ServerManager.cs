@@ -5,8 +5,7 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using System.Threading.Tasks;
 
-
-public class ServerManager : MonoBehaviour //Creamos esta clase porque el script de server no está integrado en Unity, es C# puro
+public class ServerManager : MonoBehaviour
 {
     public string playerName;
     public TextMeshProUGUI playersNumber;
@@ -17,27 +16,102 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
 
     void Awake()
     {
-        DontDestroyOnLoad(this.gameObject);
+        // Evitar duplicados persistentes
+        if (FindObjectsByType<ServerManager>(FindObjectsSortMode.None).Length > 1)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        DontDestroyOnLoad(gameObject);
+        Debug.Log("[SERVERMANAGER] Persistente entre escenas.");
     }
 
-    public void StartServerAndLocalPlayer()
+    // 🔹 Método async para iniciar servidor + cliente local
+    public async void StartServerAndLocalPlayer()
     {
         ip = GetLocalIPAddress();
-        if (System.Net.IPAddress.TryParse(ip, out _))
+
+        if (!System.Net.IPAddress.TryParse(ip, out _))
         {
-            server = new Server();
-            _ = server.StartServer(port);
-
-            playerName = User_info.username;
-
-            GameManager.Instance.clientManager.ConnectToServer(playerName, ip);
+            Debug.LogError("[SERVERMANAGER] IP local inválida. No se puede iniciar el servidor.");
+            return;
         }
+
+        // === Esperar a que GameManager esté listo ===
+        int tries = 0;
+        while (GameManager.Instance == null && tries < 50)
+        {
+            await Task.Delay(100);
+            tries++;
+        }
+
+        if (GameManager.Instance == null)
+        {
+            Debug.LogError("[SERVERMANAGER] GameManager no se inicializó correctamente.");
+            return;
+        }
+
+        // === Iniciar servidor ===
+        server = new Server();
+
+        Debug.Log($"[SERVERMANAGER] Iniciando servidor en {ip}:{port} ...");
+        await server.StartServer(port);
+
+        Debug.Log("[SERVERMANAGER] Servidor iniciado correctamente.");
+
+        // === Conectar jugador local ===
+        playerName = User_info.username;
+
+        await Task.Delay(300);
+
+        if (GameManager.Instance.clientManager == null)
+        {
+            Debug.LogError("[SERVERMANAGER] ClientManager es null, no se puede conectar.");
+            return;
+        }
+
+        GameManager.Instance.clientManager.ConnectToServer(playerName, ip);
+        Debug.Log($"[SERVERMANAGER] Cliente local '{playerName}' conectado al servidor en {ip}:{port}");
     }
 
-    // Enviar un movimiento desde el host
+    // 🔹 Iniciar la partida cuando el host presiona "Start Game"
+    public async void OnStartGamePressed()
+    {
+        if (GameManager.Instance == null)
+        {
+            Debug.LogError("[SERVER_MANAGER] ❌ GameManager.Instance es null.");
+            return;
+        }
 
+        if (server == null)
+        {
+            Debug.LogError("[SERVER_MANAGER] ❌ Servidor no inicializado.");
+            return;
+        }
 
-    public static string GetLocalIPAddress() //Funcion para obtener la ip como string
+        Debug.Log("[SERVER_MANAGER] 🟢 Iniciando juego para todos los jugadores...");
+
+        // Crear mensaje inicial de inicio de juego
+        TurnInfo startMessage = new TurnInfo();
+        startMessage.startGame = true;
+        startMessage.actionType = "startGame";
+
+        // Asignar listas del GameManager actual
+        startMessage.playersList = GameManager.Instance.playersList;
+        startMessage.territoriesList = GameManager.Instance.territoriesList;
+
+        // Enviar mensaje de inicio a todos los clientes
+        await server.BroadcastMessage(startMessage, null);
+        Debug.Log("[SERVER_MANAGER] ✅ Mensaje de inicio enviado a los clientes.");
+
+        // Cargar escena localmente para el host
+        GameManager.Instance.StartGame(startMessage);
+        Debug.Log("[SERVER_MANAGER] 🗺️ Escena 'Game' cargada localmente.");
+    }
+
+    // 🔹 Obtener IP local
+    public static string GetLocalIPAddress()
     {
         string localIP = "";
         try
@@ -57,10 +131,14 @@ public class ServerManager : MonoBehaviour //Creamos esta clase porque el script
         return localIP;
     }
 
+    // 🔹 Obtener cantidad de jugadores conectados
     public int getPlayers()
     {
-        return server.players.Count();
+        if (server == null || server.clients == null)
+        {
+            Debug.LogWarning("[SERVERMANAGER] Servidor o lista de clientes aún no inicializados.");
+            return 0;
+        }
+        return server.clients.Count();
     }
-
 }
-

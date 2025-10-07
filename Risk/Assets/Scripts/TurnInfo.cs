@@ -1,62 +1,117 @@
 using System;
-using CrazyRisk.Core;
+using System.Collections.Generic;
+using Newtonsoft.Json;
 using UnityEngine;
+using CrazyRisk;
+using CrazyRisk.Core;
 
 [Serializable]
 public class TurnInfo
 {
-    // === Datos básicos del turno ===
-    public string color;
-    public int troops;
+    // ===============================
+    // 🔹 Datos principales del turno
+    // ===============================
+    public string actionType = "none";
     public bool startGame;
-    public int numPlayers;
-    public string playerName;
-    public string ipCode;
-    public bool gameRoom = false;
+    public bool setTropsFase;
+    public bool normalGame;
 
-    // === Estructuras personalizadas ===
-    public LinkedList<PlayerInfo> playersList;
-    public LinkedList<Territorio> territoriesList;
+    // ===============================
+    // 🔹 Listas del juego
+    // ===============================
+    [JsonIgnore] public LinkedList<PlayerInfo> playersList;
+    [JsonIgnore] public LinkedList<Territorio> territoriesList;
 
-    // === Copias serializables (para JSON) ===
-    public PlayerInfo[] playersArray;
-    public Territorio[] territoriesArray;
+    // Versiones serializables
+    public List<PlayerInfo> playersArray;
+    public List<TerritorioDTO> territoriesArray;
 
-    // === Convertir antes de enviar ===
+    // ===============================
+    // 🔹 Serialización / reconstrucción
+    // ===============================
+
+    /// <summary>
+    /// Convierte las estructuras internas (LinkedList) en listas serializables
+    /// </summary>
     public void PrepareForSend()
     {
-        if (playersList != null)
-            playersArray = LinkedListToArray(playersList);
+        try
+        {
+            // --- Jugadores ---
+            if (playersList != null)
+            {
+                playersArray = new List<PlayerInfo>();
+                var node = playersList.head;
+                while (node != null)
+                {
+                    playersArray.Add(node.data);
+                    node = node.next;
+                }
+            }
 
-        if (territoriesList != null)
-            territoriesArray = LinkedListToArray(territoriesList);
+            // --- Territorios ---
+            if (territoriesList != null)
+            {
+                territoriesArray = new List<TerritorioDTO>();
+                var node = territoriesList.head;
+                while (node != null)
+                {
+                    territoriesArray.Add(new TerritorioDTO(node.data));
+                    node = node.next;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[TurnInfo] Error serializando: {ex.Message}");
+        }
     }
 
-    // === Reconstruir al recibir ===
+    /// <summary>
+    /// Reconstruye las listas enlazadas a partir de las listas JSON recibidas
+    /// </summary>
     public void RebuildLinkedLists()
     {
-        if (playersArray != null && playersArray.Length > 0)
-            playersList = ArrayToLinkedList(playersArray);
+        try
+        {
+            // --- Jugadores ---
+            playersList = new LinkedList<PlayerInfo>();
+            if (playersArray != null)
+            {
+                foreach (var p in playersArray)
+                    playersList.Add(p);
+            }
 
-        if (territoriesArray != null && territoriesArray.Length > 0)
-            territoriesList = ArrayToLinkedList(territoriesArray);
+            // --- Territorios ---
+            territoriesList = new LinkedList<Territorio>();
+            if (territoriesArray != null)
+            {
+                foreach (var dto in territoriesArray)
+                    territoriesList.Add(dto.ToTerritorio());
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[TurnInfo] Error reconstruyendo listas: {ex.Message}");
+        }
     }
 
-    // === Utilidades ===
-    private static T[] LinkedListToArray<T>(LinkedList<T> list)
+    // ===============================
+    // 🔹 Utilidades JSON
+    // ===============================
+    public string ToJson()
     {
-        int count = list.Count();
-        T[] arr = new T[count];
-        for (int i = 0; i < count; i++)
-            arr[i] = list.Get(i);
-        return arr;
+        PrepareForSend();
+        return JsonConvert.SerializeObject(this);
     }
 
-    private static LinkedList<T> ArrayToLinkedList<T>(T[] arr)
+    public static TurnInfo FromJson(string json)
     {
-        var l = new LinkedList<T>();
-        for (int i = 0; i < arr.Length; i++)
-            l.Add(arr[i]);
-        return l;
+        if (string.IsNullOrEmpty(json))
+            return null;
+
+        TurnInfo info = JsonConvert.DeserializeObject<TurnInfo>(json);
+        info.RebuildLinkedLists();
+        return info;
     }
 }

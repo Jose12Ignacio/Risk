@@ -1,23 +1,23 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
-using System.Text;
-using System.Collections.Generic;
-using Newtonsoft.Json;
 
 public class Server
 {
     private TcpListener listener;
+    public LinkedList<PlayerInfo> clients = new LinkedList<PlayerInfo>();
+    public LinkedList<PlayerInfo> players => clients; // Alias de compatibilidad
+
     private bool isRunning = false;
     private CancellationTokenSource cts;
 
-    // Lista de jugadores y sockets separados
-    public LinkedList<PlayerInfo> players = new LinkedList<PlayerInfo>();
-    public  Dictionary<PlayerInfo, TcpClient> clientSockets = new Dictionary<PlayerInfo, TcpClient>();
-
+    // ===============================
+    // 🔹 INICIAR SERVIDOR
+    // ===============================
     public async Task StartServer(int port)
     {
         if (isRunning) return;
@@ -29,26 +29,29 @@ public class Server
             isRunning = true;
             cts = new CancellationTokenSource();
 
+            Debug.Log($"[SERVER] Escuchando en puerto {port}");
             _ = AcceptLoopAsync(cts.Token);
 
-            Debug.Log($"Servidor escuchando en puerto {port}");
             await Task.CompletedTask;
         }
         catch (SocketException se)
         {
             isRunning = false;
-            Debug.LogError($"No se pudo iniciar el servidor en el puerto {port}: {se.Message}");
+            Debug.LogError($"[SERVER] No se pudo iniciar en puerto {port}: {se.Message}");
             throw;
         }
     }
 
+    // ===============================
+    // 🔹 BUCLE PRINCIPAL DE ACEPTACIÓN
+    // ===============================
     private async Task AcceptLoopAsync(CancellationToken token)
     {
         try
         {
             while (isRunning && !token.IsCancellationRequested)
             {
-                if (players.Count() >= 3)
+                if (clients.Count() >= 3)
                 {
                     await Task.Delay(250, token);
                     continue;
@@ -61,98 +64,131 @@ public class Server
         catch (ObjectDisposedException) { }
         catch (Exception ex)
         {
-            Debug.LogWarning($"AcceptLoop terminó con error: {ex.Message}");
+            Debug.LogWarning($"[SERVER] AcceptLoop terminó con error: {ex.Message}");
         }
     }
 
+    // ===============================
+    // 🔹 MANEJAR CLIENTE INDIVIDUAL
+    // ===============================
     private async Task HandleClient(TcpClient client)
     {
         NetworkStream stream = client.GetStream();
-        byte[] buffer = new byte[4096];
+        StringBuilder sb = new StringBuilder();
+        byte[] buffer = new byte[8192];
         PlayerInfo player = null;
 
         try
         {
-            // Primer mensaje: username
+            // === Primer mensaje: username ===
             int firstRead = await stream.ReadAsync(buffer, 0, buffer.Length);
             if (firstRead <= 0) return;
 
             string username = Encoding.UTF8.GetString(buffer, 0, firstRead).Trim();
-            player = new PlayerInfo(username);
-            players.Add(player);
-            clientSockets[player] = client;
+            if (username.EndsWith("\n"))
+                username = username.Substring(0, username.Length - 1);
 
-            Debug.Log($"Jugador conectado: {username} | Total: {players.Count()}");
+            player = new PlayerInfo(client, username);
+            clients.Add(player);
 
+            Debug.Log($"[SERVER] Jugador conectado: {username} | Total: {clients.Count()}");
+
+            // === Bucle de recepción ===
             while (client.Connected)
             {
-                // Leer longitud
-                byte[] lengthBuffer = new byte[4];
-                int readLen = await stream.ReadAsync(lengthBuffer, 0, 4);
-                if (readLen == 0) break;
+                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                if (bytesRead <= 0) break;
 
-                int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
-                byte[] messageBuffer = new byte[messageLength];
-                int totalRead = 0;
+                sb.Append(Encoding.UTF8.GetString(buffer, 0, bytesRead));
 
-                while (totalRead < messageLength)
+                // Procesar cada JSON completo (delimitado con '\n')
+                string allData = sb.ToString();
+                int newlineIndex;
+                while ((newlineIndex = allData.IndexOf('\n')) >= 0)
                 {
-                    int bytesRead = await stream.ReadAsync(messageBuffer, totalRead, messageLength - totalRead);
-                    if (bytesRead == 0) break;
-                    totalRead += bytesRead;
+                    string oneJson = allData.Substring(0, newlineIndex).Trim();
+                    allData = allData.Substring(newlineIndex + 1);
+                    sb.Clear();
+                    sb.Append(allData);
+
+                    if (string.IsNullOrWhiteSpace(oneJson))
+                        continue;
+
+                    try
+                    {
+                        TurnInfo receivedAction = TurnInfo.FromJson(oneJson);
+                        if (receivedAction == null)
+                        {
+                            Debug.LogWarning($"[SERVER] JSON inválido de {player.username}, ignorado.");
+                            continue;
+                        }
+
+                        receivedAction.RebuildLinkedLists(); // reconstruir estructuras
+                        Debug.Log($"[SERVER] Acción recibida de {player.username}: {receivedAction.actionType}");
+
+                        await BroadcastMessage(receivedAction, player);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[SERVER] Error con cliente {player.username}: {ex.Message}");
+                    }
                 }
-
-                string json = Encoding.UTF8.GetString(messageBuffer);
-                TurnInfo receivedAction = JsonConvert.DeserializeObject<TurnInfo>(json);
-
-                await BroadcastMessage(receivedAction, player);
             }
         }
         catch (Exception ex)
         {
-            Debug.LogWarning($"Error con cliente {player?.username ?? "?"}: {ex.Message}");
+            Debug.LogWarning($"[SERVER] Error general con cliente {player?.username ?? "Desconocido"}: {ex.Message}");
         }
         finally
         {
             if (player != null)
             {
-                players.Remove(player);
-                clientSockets.Remove(player);
-                Debug.Log($"Jugador desconectado: {player.username} | Total: {players.Count()}");
+                clients.Remove(player);
+                Debug.Log($"[SERVER] Jugador desconectado: {player.username} | Total: {clients.Count()}");
             }
 
             try { client.Close(); } catch { }
         }
     }
 
-    private async Task BroadcastMessage(TurnInfo action, PlayerInfo sender)
+    // ===============================
+    // 🔹 ENVIAR MENSAJE A TODOS LOS CLIENTES
+    // ===============================
+    public async Task BroadcastMessage(TurnInfo action, PlayerInfo sender)
+
     {
-        // ✅ Preparar las estructuras para envío
-        action.PrepareForSend();
-
-        string json = JsonUtility.ToJson(action);
-        byte[] data = System.Text.Encoding.UTF8.GetBytes(json);
-
-        foreach (var kvp in clientSockets)
+        try
         {
-            PlayerInfo p = kvp.Key;
-            TcpClient client = kvp.Value;
+            action.PrepareForSend();
+            string json = action.ToJson() + "\n"; // Añadir delimitador
+            byte[] data = Encoding.UTF8.GetBytes(json);
 
-            if (p == sender || !client.Connected) continue;
+            for (int i = 0; i < clients.Count(); i++)
+            {
+                PlayerInfo p = clients.Get(i);
+                if (p == null || p == sender || p.client == null || !p.client.Connected)
+                    continue;
 
-            try
-            {
-                NetworkStream s = client.GetStream();
-                await s.WriteAsync(lengthBytes, 0, lengthBytes.Length);
-                await s.WriteAsync(data, 0, data.Length);
+                try
+                {
+                    NetworkStream s = p.client.GetStream();
+                    await s.WriteAsync(data, 0, data.Length);
+                }
+                catch
+                {
+                    Debug.LogWarning($"[SERVER] No se pudo enviar mensaje a {p.username}");
+                }
             }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"Error enviando mensaje a {p.username}: {ex.Message}");
-            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[SERVER] Error serializando TurnInfo: {ex.Message}");
         }
     }
 
+    // ===============================
+    // 🔹 DETENER SERVIDOR
+    // ===============================
     public void StopServer()
     {
         if (!isRunning) return;
@@ -161,14 +197,11 @@ public class Server
         try { cts?.Cancel(); } catch { }
         try { listener?.Stop(); } catch { }
 
-        foreach (var kvp in clientSockets)
+        for (int i = 0; i < clients.Count(); i++)
         {
-            try { kvp.Value.Close(); } catch { }
+            try { clients.Get(i)?.client?.Close(); } catch { }
         }
 
-        clientSockets.Clear();
-        players.Clear();
-
-        Debug.Log("Servidor cerrado.");
+        Debug.Log("[SERVER] Servidor cerrado.");
     }
 }

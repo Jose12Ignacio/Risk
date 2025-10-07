@@ -1,69 +1,98 @@
-using UnityEngine;
 using System.Net.Sockets;
-using CrazyRisk.Core;
-using CrazyRisk;
+using CrazyRisk;        // Para Territorio, Ejercito, etc.
+using CrazyRisk.Core;   // Si tus estructuras LinkedList están aquí
+using Newtonsoft.Json;  // Para ignorar TcpClient en serialización
 
 public class PlayerInfo
 {
-    public string username;
-    public string color;
-    public bool bot;
+    // ===============================
+    // 🔹 Datos de red y jugador
+    // ===============================
 
-    public Ejercito ejercitoPlayer;
+    [JsonIgnore] // 🚫 No se serializa (no se puede enviar por red)
+    public TcpClient client;   // Conexión del jugador
 
-    public LinkedList<Territorio> myTerritories;
+    public string username;    // Nombre del jugador
+    public string color;       // Color asignado al jugador
+    public bool bot = false;   // Indica si es un bot o jugador real
 
-    public bool firstTurn;
+    // ===============================
+    // 🔹 Datos de juego
+    // ===============================
+    public Ejercito ejercitoPlayer;                 // Ejército asignado al jugador
+    public LinkedList<Territorio> myTerritories;    // Territorios que controla
 
-    public PlayerInfo(string name)
+    // ===============================
+    // 🔹 Constructores
+    // ===============================
+    public PlayerInfo(TcpClient client, string username)
     {
-        myTerritories = new LinkedList<Territorio>();
-        username = name;
-        color = ""; // se asigna más tarde
-        firstTurn = true;
+        this.client = client;
+        this.username = username;
+        this.color = "gray";
+        this.bot = false;
+        this.ejercitoPlayer = null;
+        this.myTerritories = new LinkedList<Territorio>();
     }
 
-    public int ContinentsDomained()
+    // Alternativo (por compatibilidad con versiones anteriores)
+    public PlayerInfo(TcpClient client)
     {
-        int num = 0;
+        this.client = client;
+        this.username = "Guest";
+        this.color = "gray";
+        this.bot = false;
+        this.ejercitoPlayer = null;
+        this.myTerritories = new LinkedList<Territorio>();
+    }
 
-        int AmericaNorte = 0;
-        int AmericaSur = 0;
-        int Europa = 0;
-        int Asia = 0;
-        int Oceania = 0;
-        int Africa = 0;
+    // Para bots o pruebas sin cliente real
+    public PlayerInfo(string username)
+    {
+        this.client = null;
+        this.username = username;
+        this.color = "gray";
+        this.bot = true;
+        this.ejercitoPlayer = null;
+        this.myTerritories = new LinkedList<Territorio>();
+    }
 
-        int totalAmericaNorte = 9;
-        int totalAmericaSur   = 4;
-        int totalEuropa       = 7;
-        int totalAsia         = 12;
-        int totalOceania      = 4;
-        int totalAfrica       = 6;
+    // Constructor vacío para deserialización
+    public PlayerInfo()
+    {
+        this.client = null;
+        this.username = "Unknown";
+        this.color = "gray";
+        this.bot = false;
+        this.ejercitoPlayer = null;
+        this.myTerritories = new LinkedList<Territorio>();
+    }
 
-        var current = myTerritories.head;
-        while (current != null)
-        {
-            Territorio t = current.data;
-            switch (t.Continente)
-            {
-                case Continente.AmericaNorte: AmericaNorte++; break;
-                case Continente.AmericaSur:   AmericaSur++; break;
-                case Continente.Europa:       Europa++; break;
-                case Continente.Asia:         Asia++; break;
-                case Continente.Oceania:      Oceania++; break;
-                case Continente.Africa:       Africa++; break;
-            }
-            current = current.next;
-        }
+    // ===============================
+    // 🔹 Métodos auxiliares
+    // ===============================
 
-        if (AmericaNorte == totalAmericaNorte) num++;
-        if (AmericaSur   == totalAmericaSur)   num++;
-        if (Europa       == totalEuropa)       num++;
-        if (Asia         == totalAsia)         num++;
-        if (Oceania      == totalOceania)      num++;
-        if (Africa       == totalAfrica)       num++;
+    public void AddTerritory(Territorio territorio)
+    {
+        if (territorio == null) return;
+        if (myTerritories == null) myTerritories = new LinkedList<Territorio>();
 
-        return num;
+        // Evita duplicados
+        if (!myTerritories.Contains(territorio))
+            myTerritories.Add(territorio);
+    }
+
+    public void RemoveTerritory(Territorio territorio)
+    {
+        if (territorio == null || myTerritories == null) return;
+        myTerritories.Remove(territorio);
+    }
+
+    public override string ToString()
+    {
+        string tipo = bot ? "BOT" : "PLAYER";
+        int count = myTerritories != null ? myTerritories.Count() : 0;
+        string ejercito = ejercitoPlayer != null ? ejercitoPlayer.TropasDisponibles.ToString() : "0";
+        return $"{username} ({tipo}) - Tropas: {ejercito} - Territorios: {count}";
     }
 }

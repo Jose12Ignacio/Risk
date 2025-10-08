@@ -1,13 +1,14 @@
-
 using System;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Newtonsoft.Json;
-using CrazyRisk.Core;
 
+/// <summary>
+/// Cliente TCP que maneja la comunicación con el servidor.
+/// Envía y recibe objetos TurnInfo serializados en JSON.
+/// </summary>
 public class Client
 {
     private TcpClient client;
@@ -20,137 +21,147 @@ public class Client
     public Client(string playerName)
     {
         this.playerName = playerName;
-        client = new TcpClient();
+        client = new TcpClient(); // Crear el socket TCP
     }
 
+    // ===============================
+    // 🔹 CONECTAR AL SERVIDOR
+    // ===============================
     public async Task Connect(string ip, int port)
     {
         try
         {
-            await client.ConnectAsync(ip, port);
+            await client.ConnectAsync(ip, port); // Esperar conexión TCP
             stream = client.GetStream();
             await Task.Delay(100);
 
-            Debug.Log($"Conectado como {playerName}");
+            Debug.Log($"[CLIENT] ✅ Conectado al servidor en {ip}:{port}");
+            Debug.Log($"[CLIENT] Jugador: {playerName}");
 
+            // Enviar el nombre del jugador al servidor
             byte[] nameBytes = Encoding.UTF8.GetBytes(playerName);
             await stream.WriteAsync(nameBytes, 0, nameBytes.Length);
+            Debug.Log("[CLIENT] 📤 Nombre de jugador enviado al servidor.");
 
             OnConnected?.Invoke();
 
+            // Comienza a escuchar mensajes
             _ = ReceiveMessages();
         }
         catch (Exception ex)
         {
-            Debug.LogError($"No se pudo conectar: {ex.Message}");
+            Debug.LogError($"❌ [CLIENT] No se pudo conectar: {ex.Message}");
             OnConnectionError?.Invoke(ex.Message);
         }
     }
 
+    // ===============================
+    // 🔹 ENVIAR MENSAJE (TurnInfo)
+    // ===============================
     public async Task SendAction(TurnInfo action)
     {
         if (stream == null)
         {
-            Debug.LogWarning("No hay stream disponible para enviar mensajes.");
+            Debug.LogWarning("[CLIENT] Stream no disponible, no se puede enviar mensaje.");
             return;
         }
 
         try
         {
-            string json = JsonConvert.SerializeObject(action); // ✅ Newtonsoft
+            // Serializar el TurnInfo en JSON antes de enviar
+            string json = action.ToJson();
             byte[] data = Encoding.UTF8.GetBytes(json);
 
-            // Enviar longitud primero
-            byte[] lengthBytes = BitConverter.GetBytes(data.Length);
-            await stream.WriteAsync(lengthBytes, 0, lengthBytes.Length);
             await stream.WriteAsync(data, 0, data.Length);
-
-            Debug.Log($"Enviado: {json}");
+            Debug.Log($"[CLIENT] 📤 Acción enviada correctamente: {action.actionType}");
         }
         catch (Exception ex)
         {
-            Debug.LogError($"Error enviando mensaje: {ex.Message}");
+            Debug.LogError($"[CLIENT] ❌ Error enviando mensaje: {ex.Message}");
         }
     }
 
-private async Task ReceiveMessages()
-{
-    try
+    // ===============================
+    // 🔹 RECIBIR MENSAJES DEL SERVIDOR
+    // ===============================
+    private async Task ReceiveMessages()
     {
-        while (client.Connected)
+        byte[] buffer = new byte[8192]; // Buffer grande para mensajes largos
+
+        try
         {
-            byte[] lengthBuffer = new byte[4];
-            await ReadExactlyAsync(lengthBuffer, 4);
-            int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
-
-            byte[] messageBuffer = new byte[messageLength];
-            await ReadExactlyAsync(messageBuffer, messageLength);
-
-            string json = Encoding.UTF8.GetString(messageBuffer);
-
-            // Configuración de deserialización con converters
-            var settings = new JsonSerializerSettings();
-            settings.Converters.Add(new LinkedListConverter<PlayerInfo>());
-            settings.Converters.Add(new LinkedListConverter<Territorio>());
-
-            TurnInfo receivedAction = JsonConvert.DeserializeObject<TurnInfo>(json, settings);
-
-            if (receivedAction == null)
+            while (client.Connected)
             {
-                Debug.LogWarning("Mensaje JSON inválido recibido");
-                continue;
+                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                if (bytesRead == 0)
+                {
+                    Debug.LogWarning("[CLIENT] ⚠️ El servidor cerró la conexión.");
+                    break;
+                }
+
+                string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    Debug.LogWarning("[CLIENT] ⚠️ JSON vacío recibido. Ignorando mensaje.");
+                    continue;
+                }
+
+                TurnInfo receivedAction = null;
+                try
+                {
+                    receivedAction = TurnInfo.FromJson(json);
+                }
+                catch (Exception parseEx)
+                {
+                    Debug.LogWarning($"[CLIENT] ⚠️ Error parseando JSON: {parseEx.Message}\nContenido:\n{json}");
+                    continue;
+                }
+
+                if (receivedAction == null)
+                {
+                    Debug.LogWarning("[CLIENT] ⚠️ TurnInfo resultó nulo tras parsear JSON.");
+                    continue;
+                }
+
+                // Reconstruir listas internas
+                try
+                {
+                    receivedAction.RebuildLinkedLists();
+                }
+                catch (Exception rebuildEx)
+                {
+                    Debug.LogWarning($"[CLIENT] ⚠️ Error reconstruyendo LinkedLists: {rebuildEx.Message}");
+                }
+
+                // Verificar GameManager
+                if (GameManager.Instance == null)
+                {
+                    Debug.LogWarning("[CLIENT] ⚠️ GameManager.Instance no inicializado, ignorando mensaje recibido.");
+                    continue;
+                }
+
+                // Procesar mensaje
+                try
+                {
+                    GameManager.Instance.ManageMessages(receivedAction);
+                    Debug.Log("[CLIENT] ✅ Mensaje recibido y procesado correctamente.");
+                }
+                catch (Exception manageEx)
+                {
+                    Debug.LogError($"[CLIENT] ❌ Error procesando mensaje: {manageEx.Message}");
+                }
             }
-
-            Debug.Log("Mensaje recibido (Newtonsoft): " + json);
-
-            // Guardar color propio si el mensaje contiene info de jugadores
-            var me = FindPlayer(playerName, receivedAction.playersList);
-            if (me != null && !string.IsNullOrEmpty(me.color))
-            {
-                User_info.color = me.color;
-                Debug.Log($"Mi color asignado: {User_info.color}");
-            }
-
-            GameManager.Instance.ManageMessages(receivedAction);
         }
-    }
-    catch (Exception ex)
-    {
-        Debug.LogWarning($"Error recibiendo mensaje: {ex.Message}");
-    }
-    finally
-    {
-        client.Close();
-        SceneManager.LoadScene("Login");
-        Debug.Log("Conexión cerrada");
-    }
-}
-
-
-    // Método seguro para encontrar tu PlayerInfo
-    private PlayerInfo? FindPlayer(string playerName, LinkedList<PlayerInfo> list)
-    {
-        if (list == null || list.Count() == 0) return null;
-
-        for (int i = 0; i < list.Count(); i++)
+        catch (Exception ex)
         {
-            var player = list.Get(i);
-            if (player != null && !string.IsNullOrEmpty(player.username) && player.username == playerName)
-                return player;
+            Debug.LogWarning($"[CLIENT] ⚠️ Error recibiendo mensaje: {ex.Message}");
         }
-
-        return null;
-    }
-
-    private async Task ReadExactlyAsync(byte[] buffer, int length)
-    {
-        int totalRead = 0;
-        while (totalRead < length)
+        finally
         {
-            int bytesRead = await stream.ReadAsync(buffer, totalRead, length - totalRead);
-            if (bytesRead == 0)
-                throw new Exception("Conexión cerrada por el servidor");
-            totalRead += bytesRead;
+            try { client?.Close(); } catch { }
+            Debug.Log("[CLIENT] 🔴 Conexión cerrada. Volviendo a la escena de Login...");
+            SceneManager.LoadScene("Login");
         }
     }
 }

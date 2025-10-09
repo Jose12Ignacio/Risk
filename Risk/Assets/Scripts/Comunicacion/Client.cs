@@ -25,7 +25,7 @@ public class Client
     }
 
     // ===============================
-    // 🔹 CONECTAR AL SERVIDOR
+    //  CONECTAR AL SERVIDOR
     // ===============================
     public async Task Connect(string ip, int port)
     {
@@ -35,13 +35,13 @@ public class Client
             stream = client.GetStream();
             await Task.Delay(100);
 
-            Debug.Log($"[CLIENT] ✅ Conectado al servidor en {ip}:{port}");
+            Debug.Log($"[CLIENT] Conectado al servidor en {ip}:{port}");
             Debug.Log($"[CLIENT] Jugador: {playerName}");
 
             // Enviar el nombre del jugador al servidor
-            byte[] nameBytes = Encoding.UTF8.GetBytes(playerName);
+            byte[] nameBytes = Encoding.UTF8.GetBytes(playerName + "\n");
             await stream.WriteAsync(nameBytes, 0, nameBytes.Length);
-            Debug.Log("[CLIENT] 📤 Nombre de jugador enviado al servidor.");
+            Debug.Log("[CLIENT]  Nombre de jugador enviado al servidor.");
 
             OnConnected?.Invoke();
 
@@ -50,13 +50,13 @@ public class Client
         }
         catch (Exception ex)
         {
-            Debug.LogError($"❌ [CLIENT] No se pudo conectar: {ex.Message}");
+            Debug.LogError($" [CLIENT] No se pudo conectar: {ex.Message}");
             OnConnectionError?.Invoke(ex.Message);
         }
     }
 
     // ===============================
-    // 🔹 ENVIAR MENSAJE (TurnInfo)
+    //  ENVIAR MENSAJE (TurnInfo)
     // ===============================
     public async Task SendAction(TurnInfo action)
     {
@@ -69,15 +69,15 @@ public class Client
         try
         {
             // Serializar el TurnInfo en JSON antes de enviar
-            string json = action.ToJson();
+            string json = action.ToJson() + "\n"; // 🔹 Agregamos el delimitador
             byte[] data = Encoding.UTF8.GetBytes(json);
 
             await stream.WriteAsync(data, 0, data.Length);
-            Debug.Log($"[CLIENT] 📤 Acción enviada correctamente: {action.actionType}");
+            Debug.Log($"[CLIENT]  Acción enviada correctamente: {action.actionType}");
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[CLIENT] ❌ Error enviando mensaje: {ex.Message}");
+            Debug.LogError($"[CLIENT]  Error enviando mensaje: {ex.Message}");
         }
     }
 
@@ -86,7 +86,8 @@ public class Client
     // ===============================
     private async Task ReceiveMessages()
     {
-        byte[] buffer = new byte[8192]; // Buffer grande para mensajes largos
+        byte[] buffer = new byte[8192];
+        StringBuilder sb = new StringBuilder();
 
         try
         {
@@ -95,72 +96,58 @@ public class Client
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                 if (bytesRead == 0)
                 {
-                    Debug.LogWarning("[CLIENT] ⚠️ El servidor cerró la conexión.");
+                    Debug.LogWarning("[CLIENT] El servidor cerró la conexión.");
                     break;
                 }
 
-                string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                sb.Append(Encoding.UTF8.GetString(buffer, 0, bytesRead));
+                string allData = sb.ToString();
+                int newlineIndex;
 
-                if (string.IsNullOrWhiteSpace(json))
+                // Procesar todos los JSON delimitados por '\n'
+                while ((newlineIndex = allData.IndexOf('\n')) >= 0)
                 {
-                    Debug.LogWarning("[CLIENT] ⚠️ JSON vacío recibido. Ignorando mensaje.");
-                    continue;
-                }
+                    string oneJson = allData.Substring(0, newlineIndex).Trim();
+                    allData = allData.Substring(newlineIndex + 1);
+                    sb.Clear();
+                    sb.Append(allData);
 
-                TurnInfo receivedAction = null;
-                try
-                {
-                    receivedAction = TurnInfo.FromJson(json);
-                }
-                catch (Exception parseEx)
-                {
-                    Debug.LogWarning($"[CLIENT] ⚠️ Error parseando JSON: {parseEx.Message}\nContenido:\n{json}");
-                    continue;
-                }
+                    if (string.IsNullOrWhiteSpace(oneJson))
+                        continue;
 
-                if (receivedAction == null)
-                {
-                    Debug.LogWarning("[CLIENT] ⚠️ TurnInfo resultó nulo tras parsear JSON.");
-                    continue;
-                }
+                    try
+                    {
+                        TurnInfo receivedAction = TurnInfo.FromJson(oneJson);
+                        if (receivedAction == null)
+                        {
+                            Debug.LogWarning("[CLIENT]  JSON inválido recibido, ignorando...");
+                            continue;
+                        }
 
-                // Reconstruir listas internas
-                try
-                {
-                    receivedAction.RebuildLinkedLists();
-                }
-                catch (Exception rebuildEx)
-                {
-                    Debug.LogWarning($"[CLIENT] ⚠️ Error reconstruyendo LinkedLists: {rebuildEx.Message}");
-                }
+                        if (GameManager.Instance == null)
+                        {
+                            Debug.LogWarning("[CLIENT]  GameManager.Instance no inicializado.");
+                            continue;
+                        }
 
-                // Verificar GameManager
-                if (GameManager.Instance == null)
-                {
-                    Debug.LogWarning("[CLIENT] ⚠️ GameManager.Instance no inicializado, ignorando mensaje recibido.");
-                    continue;
-                }
-
-                // Procesar mensaje
-                try
-                {
-                    GameManager.Instance.ManageMessages(receivedAction);
-                    Debug.Log("[CLIENT] ✅ Mensaje recibido y procesado correctamente.");
-                }
-                catch (Exception manageEx)
-                {
-                    Debug.LogError($"[CLIENT] ❌ Error procesando mensaje: {manageEx.Message}");
+                        GameManager.Instance.ManageMessages(receivedAction);
+                        Debug.Log($"[CLIENT] Acción recibida: {receivedAction.actionType}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"[CLIENT]  Error procesando mensaje: {ex.Message}");
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
-            Debug.LogWarning($"[CLIENT] ⚠️ Error recibiendo mensaje: {ex.Message}");
+            Debug.LogWarning($"[CLIENT]  Error recibiendo mensaje: {ex.Message}");
         }
         finally
         {
             try { client?.Close(); } catch { }
-            Debug.Log("[CLIENT] 🔴 Conexión cerrada. Volviendo a la escena de Login...");
+            Debug.Log("[CLIENT]  Conexión cerrada. Volviendo a la escena de Login...");
             SceneManager.LoadScene("Login");
         }
     }

@@ -16,7 +16,6 @@ public class ServerManager : MonoBehaviour
 
     void Awake()
     {
-        // Evitar duplicados persistentes
         if (FindObjectsByType<ServerManager>(FindObjectsSortMode.None).Length > 1)
         {
             Destroy(gameObject);
@@ -27,7 +26,6 @@ public class ServerManager : MonoBehaviour
         Debug.Log("[SERVERMANAGER] Persistente entre escenas.");
     }
 
-    // 🔹 Método async para iniciar servidor + cliente local
     public async void StartServerAndLocalPlayer()
     {
         ip = GetLocalIPAddress();
@@ -38,7 +36,6 @@ public class ServerManager : MonoBehaviour
             return;
         }
 
-        // === Esperar a que GameManager esté listo ===
         int tries = 0;
         while (GameManager.Instance == null && tries < 50)
         {
@@ -52,7 +49,6 @@ public class ServerManager : MonoBehaviour
             return;
         }
 
-        // === Iniciar servidor ===
         server = new Server();
 
         Debug.Log($"[SERVERMANAGER] Iniciando servidor en {ip}:{port} ...");
@@ -60,7 +56,6 @@ public class ServerManager : MonoBehaviour
 
         Debug.Log("[SERVERMANAGER] Servidor iniciado correctamente.");
 
-        // === Conectar jugador local ===
         playerName = User_info.username;
 
         await Task.Delay(300);
@@ -75,42 +70,28 @@ public class ServerManager : MonoBehaviour
         Debug.Log($"[SERVERMANAGER] Cliente local '{playerName}' conectado al servidor en {ip}:{port}");
     }
 
-    // 🔹 Iniciar la partida cuando el host presiona "Start Game"
     public async void OnStartGamePressed()
     {
-        if (GameManager.Instance == null)
+        if (GameManager.Instance == null || server == null)
         {
-            Debug.LogError("[SERVER_MANAGER] ❌ GameManager.Instance es null.");
+            Debug.LogError("[SERVER_MANAGER] No se puede iniciar el juego: dependencias nulas.");
             return;
         }
 
-        if (server == null)
-        {
-            Debug.LogError("[SERVER_MANAGER] ❌ Servidor no inicializado.");
-            return;
-        }
+        Debug.Log("[SERVER_MANAGER] Iniciando juego para todos los jugadores...");
 
-        Debug.Log("[SERVER_MANAGER] 🟢 Iniciando juego para todos los jugadores...");
-
-        // Crear mensaje inicial de inicio de juego
         TurnInfo startMessage = new TurnInfo();
-        startMessage.startGame = true;
         startMessage.actionType = "startGame";
-
-        // Asignar listas del GameManager actual
+        startMessage.startGame = true;
         startMessage.playersList = GameManager.Instance.playersList;
         startMessage.territoriesList = GameManager.Instance.territoriesList;
 
-        // Enviar mensaje de inicio a todos los clientes
         await server.BroadcastMessage(startMessage, null);
-        Debug.Log("[SERVER_MANAGER] ✅ Mensaje de inicio enviado a los clientes.");
+        Debug.Log("[SERVER_MANAGER] Mensaje 'startGame' enviado a los clientes.");
 
-        // Cargar escena localmente para el host
         GameManager.Instance.StartGame(startMessage);
-        Debug.Log("[SERVER_MANAGER] 🗺️ Escena 'Game' cargada localmente.");
     }
 
-    // 🔹 Obtener IP local
     public static string GetLocalIPAddress()
     {
         string localIP = "";
@@ -131,7 +112,6 @@ public class ServerManager : MonoBehaviour
         return localIP;
     }
 
-    // 🔹 Obtener cantidad de jugadores conectados
     public int getPlayers()
     {
         if (server == null || server.clients == null)

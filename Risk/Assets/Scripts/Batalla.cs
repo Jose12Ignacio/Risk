@@ -66,7 +66,7 @@ namespace CrazyRisk.Core
     resultado.AtacanteColor = User_info.color;
     resultado.DefensorColor = colorDefensor;
 
-    // 🚀 Guardamos las tropas finales
+    //  Guardamos las tropas finales
     resultado.TropasAtacanteFinal = ejercitosAtacante;
     resultado.TropasDefensorFinal = ejercitosDefensor;
 

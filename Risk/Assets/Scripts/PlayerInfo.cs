@@ -6,10 +6,10 @@ using Newtonsoft.Json;  // Para ignorar TcpClient en serialización
 public class PlayerInfo
 {
     // ===============================
-    // 🔹 Datos de red y jugador
+    // Datos de red y jugador
     // ===============================
 
-    [JsonIgnore] // 🚫 No se serializa (no se puede enviar por red)
+    [JsonIgnore] //  No se serializa (no se puede enviar por red)
     public TcpClient client;   // Conexión del jugador
 
     public string username;    // Nombre del jugador
@@ -17,13 +17,13 @@ public class PlayerInfo
     public bool bot = false;   // Indica si es un bot o jugador real
 
     // ===============================
-    // 🔹 Datos de juego
+    //  Datos de juego
     // ===============================
     public Ejercito ejercitoPlayer;                 // Ejército asignado al jugador
     public LinkedList<Territorio> myTerritories;    // Territorios que controla
 
     // ===============================
-    // 🔹 Constructores
+    // Constructores
     // ===============================
     public PlayerInfo(TcpClient client, string username)
     {
@@ -69,7 +69,7 @@ public class PlayerInfo
     }
 
     // ===============================
-    // 🔹 Métodos auxiliares
+    //  Métodos auxiliares
     // ===============================
 
     public void AddTerritory(Territorio territorio)

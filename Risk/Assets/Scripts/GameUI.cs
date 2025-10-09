@@ -20,10 +20,10 @@ public class GameUI : MonoBehaviour
     private TerritoryNode defensor;
 
 
-    /// <summary>
+   
     /// Revisa el array de seleccionados y ajusta la UI.
     /// Llamar este método después de cada clic en un TerritoryNode.
-    /// </summary>
+    
     public void UpdateFromSeleccion()
     {
         string[] seleccionados = TerritoryNode.ObtenerSeleccionados();

@@ -10,7 +10,7 @@ public class RegionButtonUI : MonoBehaviour
 
     void Awake()
     {
-        button = GetComponent<Button>(); // 👈 Se autoasigna
+        button = GetComponent<Button>(); //  Se autoasigna
     }
 
     public void Init(TerritorioId territorio)

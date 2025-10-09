@@ -13,11 +13,8 @@ public class ClientManager : MonoBehaviour
 
     public async void ConnectToServer(string username, string inputIp)
     {
-        
-        // Crear el cliente con el username
         localPlayer = new Client(username);
 
-        // Suscribirse a eventos ANTES de intentar conectar
         localPlayer.OnConnected += () =>
         {
             SceneManager.LoadScene("GameRoom");
@@ -28,18 +25,16 @@ public class ClientManager : MonoBehaviour
             Debug.LogError("Error al conectar: " + msg);
         };
 
-        // Intentar conectarse
         await localPlayer.Connect(inputIp, 5000);
     }
 
-    public async void SendMove(TurnInfo action) //Enviar información del movimiento hecho
+    public async void SendMove(TurnInfo action)
     {
         Debug.Log("LocalPlayer" + localPlayer != null);
         if (localPlayer != null)
         {
-            await localPlayer.SendAction(action); //Llama a la función en si
+            await localPlayer.SendAction(action);
             Debug.Log("Mensaje enviado");
         }
     }
-
 }

@@ -79,7 +79,7 @@ public class GameRoomManager : MonoBehaviour
             return;
         }
 
-        // ✅ Obtener la lista de clientes conectados (ya no 'players')
+        // Obtener la lista de clientes conectados (ya no 'players')
         var clients = GameManager.Instance.serverManager.server.clients;
         if (clients == null || clients.Count() < 2)
         {
@@ -105,7 +105,7 @@ public class GameRoomManager : MonoBehaviour
         }
         clients.head.next.data.color = "blue";
 
-        // ✅ Añadir bot si hace falta (constructor actualizado)
+        //  Añadir bot si hace falta (constructor actualizado)
         if (clients.head.next.next == null)
         {
             PlayerInfo bot = new PlayerInfo(null, "bot");

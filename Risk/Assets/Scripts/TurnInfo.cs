@@ -9,30 +9,32 @@ using CrazyRisk.Core;
 public class TurnInfo
 {
     // ===============================
-    // 🔹 Datos principales del turno
+    // Datos principales del turno
     // ===============================
-    public string actionType = "none";
-    public bool startGame;
-    public bool setTropsFase;
-    public bool normalGame;
+    // Estas variables indican el tipo de acción y el estado actual del turno en el juego.
+    public string actionType = "none";   // Tipo de acción actual (por ejemplo: "attack", "move", "reinforce").
+    public bool startGame;               // Indica si se está iniciando la partida.
+    public bool setTropsFase;            // Indica si el turno está en la fase de colocar tropas.
+    public bool normalGame;              // Indica si el turno pertenece a la fase de juego normal.
 
     // ===============================
-    // 🔹 Listas del juego
+    // Listas del juego
     // ===============================
-    [JsonIgnore] public LinkedList<PlayerInfo> playersList;
-    [JsonIgnore] public LinkedList<Territorio> territoriesList;
+    // Estas listas contienen los datos de los jugadores y territorios.
+    // Se marcan con [JsonIgnore] porque las LinkedList personalizadas no pueden serializarse directamente a JSON.
+    [JsonIgnore] public LinkedList<PlayerInfo> playersList;     // Lista enlazada de jugadores.
+    [JsonIgnore] public LinkedList<Territorio> territoriesList; // Lista enlazada de territorios.
 
     // Versiones serializables
-    public List<PlayerInfo> playersArray;
-    public List<TerritorioDTO> territoriesArray;
+    // Estas listas se usan para enviar los datos por red, ya que las LinkedList no son compatibles con JSON.
+    public List<PlayerInfo> playersArray;           // Copia serializable de la lista de jugadores.
+    public List<TerritorioDTO> territoriesArray;    // Copia serializable de la lista de territorios (en formato DTO).
 
-    // ===============================
-    // 🔹 Serialización / reconstrucción
-    // ===============================
-
-    /// <summary>
-    /// Convierte las estructuras internas (LinkedList) en listas serializables
-    /// </summary>
+    
+    // Serialización / reconstrucción
+  
+    // Este método prepara los datos para ser enviados por red.
+    // Convierte las estructuras LinkedList en listas normales (List<T>) que pueden serializarse.
     public void PrepareForSend()
     {
         try
@@ -42,6 +44,8 @@ public class TurnInfo
             {
                 playersArray = new List<PlayerInfo>();
                 var node = playersList.head;
+
+                // Recorre cada nodo de la lista enlazada y lo agrega al array serializable.
                 while (node != null)
                 {
                     playersArray.Add(node.data);
@@ -54,6 +58,8 @@ public class TurnInfo
             {
                 territoriesArray = new List<TerritorioDTO>();
                 var node = territoriesList.head;
+
+                // Convierte cada territorio en un objeto DTO (versión serializable).
                 while (node != null)
                 {
                     territoriesArray.Add(new TerritorioDTO(node.data));
@@ -63,13 +69,13 @@ public class TurnInfo
         }
         catch (Exception ex)
         {
+            // Si ocurre un error durante la conversión, se muestra en la consola.
             Debug.LogError($"[TurnInfo] Error serializando: {ex.Message}");
         }
     }
 
-    /// <summary>
-    /// Reconstruye las listas enlazadas a partir de las listas JSON recibidas
-    /// </summary>
+    // Este método reconstruye las listas enlazadas a partir de los datos deserializados.
+    // Se usa cuando se recibe un mensaje desde el servidor o desde otro cliente.
     public void RebuildLinkedLists()
     {
         try
@@ -79,7 +85,7 @@ public class TurnInfo
             if (playersArray != null)
             {
                 foreach (var p in playersArray)
-                    playersList.Add(p);
+                    playersList.Add(p);  // Se reconstruye la lista enlazada de jugadores.
             }
 
             // --- Territorios ---
@@ -87,24 +93,26 @@ public class TurnInfo
             if (territoriesArray != null)
             {
                 foreach (var dto in territoriesArray)
-                    territoriesList.Add(dto.ToTerritorio());
+                    territoriesList.Add(dto.ToTerritorio());  // Se convierte el DTO nuevamente en un objeto Territorio.
             }
         }
         catch (Exception ex)
         {
+            // Si ocurre un error durante la reconstrucción, se muestra en la consola.
             Debug.LogError($"[TurnInfo] Error reconstruyendo listas: {ex.Message}");
         }
     }
 
-    // ===============================
-    // 🔹 Utilidades JSON
-    // ===============================
+    // Convierte el objeto TurnInfo completo en una cadena JSON.
+    // Se llama cuando se va a enviar el turno por red o guardar en archivo.
     public string ToJson()
     {
-        PrepareForSend();
+        PrepareForSend(); // Se asegura de convertir las listas antes de serializar.
         return JsonConvert.SerializeObject(this);
     }
 
+    // Crea un objeto TurnInfo a partir de una cadena JSON recibida.
+    // También llama a RebuildLinkedLists() para restaurar las estructuras originales.
     public static TurnInfo FromJson(string json)
     {
         if (string.IsNullOrEmpty(json))

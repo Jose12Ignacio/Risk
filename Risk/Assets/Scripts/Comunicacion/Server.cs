@@ -10,14 +10,11 @@ public class Server
 {
     private TcpListener listener;
     public LinkedList<PlayerInfo> clients = new LinkedList<PlayerInfo>();
-    public LinkedList<PlayerInfo> players => clients; // Alias de compatibilidad
+    public LinkedList<PlayerInfo> players => clients;
 
     private bool isRunning = false;
     private CancellationTokenSource cts;
 
-    // ===============================
-    // 🔹 INICIAR SERVIDOR
-    // ===============================
     public async Task StartServer(int port)
     {
         if (isRunning) return;
@@ -42,9 +39,6 @@ public class Server
         }
     }
 
-    // ===============================
-    // 🔹 BUCLE PRINCIPAL DE ACEPTACIÓN
-    // ===============================
     private async Task AcceptLoopAsync(CancellationToken token)
     {
         try
@@ -68,9 +62,6 @@ public class Server
         }
     }
 
-    // ===============================
-    // 🔹 MANEJAR CLIENTE INDIVIDUAL
-    // ===============================
     private async Task HandleClient(TcpClient client)
     {
         NetworkStream stream = client.GetStream();
@@ -80,7 +71,6 @@ public class Server
 
         try
         {
-            // === Primer mensaje: username ===
             int firstRead = await stream.ReadAsync(buffer, 0, buffer.Length);
             if (firstRead <= 0) return;
 
@@ -93,7 +83,6 @@ public class Server
 
             Debug.Log($"[SERVER] Jugador conectado: {username} | Total: {clients.Count()}");
 
-            // === Bucle de recepción ===
             while (client.Connected)
             {
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
@@ -101,7 +90,6 @@ public class Server
 
                 sb.Append(Encoding.UTF8.GetString(buffer, 0, bytesRead));
 
-                // Procesar cada JSON completo (delimitado con '\n')
                 string allData = sb.ToString();
                 int newlineIndex;
                 while ((newlineIndex = allData.IndexOf('\n')) >= 0)
@@ -123,7 +111,7 @@ public class Server
                             continue;
                         }
 
-                        receivedAction.RebuildLinkedLists(); // reconstruir estructuras
+                        receivedAction.RebuildLinkedLists();
                         Debug.Log($"[SERVER] Acción recibida de {player.username}: {receivedAction.actionType}");
 
                         await BroadcastMessage(receivedAction, player);
@@ -151,16 +139,12 @@ public class Server
         }
     }
 
-    // ===============================
-    // 🔹 ENVIAR MENSAJE A TODOS LOS CLIENTES
-    // ===============================
     public async Task BroadcastMessage(TurnInfo action, PlayerInfo sender)
-
     {
         try
         {
             action.PrepareForSend();
-            string json = action.ToJson() + "\n"; // Añadir delimitador
+            string json = action.ToJson() + "\n";
             byte[] data = Encoding.UTF8.GetBytes(json);
 
             for (int i = 0; i < clients.Count(); i++)
@@ -186,9 +170,6 @@ public class Server
         }
     }
 
-    // ===============================
-    // 🔹 DETENER SERVIDOR
-    // ===============================
     public void StopServer()
     {
         if (!isRunning) return;
